@@ -48,8 +48,7 @@ defmodule Brasilex.MixProject do
 
   defp description do
     """
-    An Elixir library for parsing and validating Brazilian boletos (bank slips).
-    Supports both banking boletos (47 digits) and convenio boletos (48 digits).
+    A Elixir library for Brazilian utilities and helpers.
     """
   end
 

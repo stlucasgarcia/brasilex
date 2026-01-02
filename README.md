@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Brasilex</h1>
 
-<p>A pure Elixir library for Brazilian utilities and helpers — validation, parsing, and formatting of Brazilian documents and data.</p>
+<p>A Elixir library for Brazilian utilities and helpers.</p>
 
 [![Hex.pm](https://img.shields.io/hexpm/v/brasilex.svg)](https://hex.pm/packages/brasilex)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/brasilex)
@@ -208,10 +208,10 @@ boleto.barcode    #=> String.t()
 
 ### Available Structs
 
-| Struct | Description |
-|--------|-------------|
-| `Brasilex.Boleto` | Parsed boleto with all fields (type, amount, dates, etc.) |
-| `Brasilex.ValidationError` | Exception raised by bang functions |
+| Struct                     | Description                                               |
+| -------------------------- | --------------------------------------------------------- |
+| `Brasilex.Boleto`          | Parsed boleto with all fields (type, amount, dates, etc.) |
+| `Brasilex.ValidationError` | Exception raised by bang functions                        |
 
 ## Validation Details
 
