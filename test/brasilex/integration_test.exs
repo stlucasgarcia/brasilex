@@ -44,8 +44,23 @@ defmodule Brasilex.IntegrationTest do
       assert boleto.amount == 150.00
     end
 
-    test "parses due date correctly" do
-      # Due factor 1000 = 1000 days after 1997-10-07
+    test "parses due date from old cycle (factor results in recent date)" do
+      # Factor 9999 = 2025-02-21 using old base (last date of old cycle)
+      linha_digitavel = build_valid_banking_boleto(
+        bank_code: "341",
+        currency: "9",
+        free_field: "0000000000000000000000000",
+        due_factor: "9999",
+        amount: "0000000100"
+      )
+
+      {:ok, boleto} = Brasilex.parse_boleto(linha_digitavel)
+      assert boleto.due_date == ~D[2025-02-21]
+    end
+
+    test "parses due date from new cycle (factor 1000 = 2025-02-22)" do
+      # Factor 1000 with new base (2022-05-29) = 2025-02-22
+      # This triggers new cycle because old base would give 2000-07-03 (>5 years ago)
       linha_digitavel = build_valid_banking_boleto(
         bank_code: "341",
         currency: "9",
@@ -55,7 +70,7 @@ defmodule Brasilex.IntegrationTest do
       )
 
       {:ok, boleto} = Brasilex.parse_boleto(linha_digitavel)
-      assert boleto.due_date == Date.add(~D[1997-10-07], 1000)
+      assert boleto.due_date == ~D[2025-02-22]
     end
 
     test "extracts free field correctly" do
@@ -154,12 +169,12 @@ defmodule Brasilex.IntegrationTest do
 
   describe "banking barcode (44 digits) round-trip" do
     test "validates and parses a banking barcode" do
-      # First build a valid linha digitável
+      # First build a valid linha digitável with factor 9999 (old cycle)
       linha_digitavel = build_valid_banking_boleto(
         bank_code: "237",
         currency: "9",
         free_field: "1234567890123456789012345",
-        due_factor: "1000",
+        due_factor: "9999",
         amount: "0000015000"
       )
 
@@ -176,7 +191,7 @@ defmodule Brasilex.IntegrationTest do
       assert boleto.bank_code == "237"
       assert boleto.currency_code == "9"
       assert boleto.amount == 150.00
-      assert boleto.due_date == Date.add(~D[1997-10-07], 1000)
+      assert boleto.due_date == ~D[2025-02-21]
       assert boleto.free_field == "1234567890123456789012345"
     end
 

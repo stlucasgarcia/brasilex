@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-01-02
+
+### Added
+
+- FEBRABAN due date factor rollover support (2025-02-22 transition)
+  - Old cycle: base 1997-10-07, factor 9999 = 2025-02-21
+  - New cycle: base 2022-05-29, factor 1000 = 2025-02-22
+  - Auto-detects cycle based on calculated date reasonableness
+
 ## [0.1.0] - 2026-01-02
 
 ### Added
@@ -40,4 +49,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Modulo 11 (general barcode validation)
 - Input sanitization (strips dots, spaces, hyphens)
 - Full typespec coverage
-- Comprehensive test suite (46 tests)
+- Comprehensive test suite

@@ -7,7 +7,7 @@ defmodule Brasilex.MixProject do
     [
       app: :brasilex,
       name: "Brasilex",
-      version: "0.1.0",
+      version: "0.1.1",
       elixir: "~> 1.17",
       description: description(),
       package: package(),
@@ -48,7 +48,7 @@ defmodule Brasilex.MixProject do
 
   defp description do
     """
-    A Elixir library for Brazilian utilities and helpers.
+    Elixir library for Brazilian utilities and helpers.
     """
   end
 

@@ -1,7 +1,7 @@
 <div align="center">
 <h1>Brasilex</h1>
 
-<p>A Elixir library for Brazilian utilities and helpers.</p>
+<p>Elixir library for Brazilian utilities and helpers.</p>
 
 [![Hex.pm](https://img.shields.io/hexpm/v/brasilex.svg)](https://hex.pm/packages/brasilex)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/brasilex)
