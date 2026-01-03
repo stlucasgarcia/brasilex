@@ -30,9 +30,8 @@ defmodule Brasilex.Boleto.Banking.Validator do
       >>) do
     with :ok <- validate_field(field1, 1),
          :ok <- validate_field(field2, 2),
-         :ok <- validate_field(field3, 3),
-         :ok <- validate_general_dv(field1, field2, field3, general_dv, field5) do
-      :ok
+         :ok <- validate_field(field3, 3) do
+      validate_general_dv(field1, field2, field3, general_dv, field5)
     end
   end
 

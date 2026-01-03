@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-01-02
+
+### Changed
+
+- **Breaking:** `amount` field now returns `Decimal.t()` instead of `float()`
+  - Provides precise monetary calculations without floating-point errors
+  - Use `Decimal.equal?/2` for comparisons
+  - Added `decimal ~> 2.0` as a dependency
+
 ## [0.1.1] - 2026-01-02
 
 ### Added

@@ -26,10 +26,7 @@ defmodule Brasilex.Boleto.Convenio.Validator do
       )
       when byte_size(digits) == 48 do
     mod_type = get_mod_type(value_type)
-
-    with :ok <- validate_fields(digits, mod_type) do
-      :ok
-    end
+    validate_fields(digits, mod_type)
   end
 
   def validate(_), do: {:error, :invalid_length}

@@ -9,7 +9,7 @@ defmodule Brasilex.Boleto do
     * `:barcode` - 44-digit barcode representation
     * `:bank_code` - 3-digit bank code (banking boletos only)
     * `:currency_code` - Currency indicator (banking: "9" = BRL)
-    * `:amount` - Amount in reais (float) or nil if not specified
+    * `:amount` - Amount in reais (Decimal) or nil if not specified
     * `:due_date` - Due date as `Date` or nil if not specified
     * `:segment` - Segment identifier (convenio boletos only)
     * `:company_id` - Company/CNPJ identifier (convenio boletos only)
@@ -23,7 +23,7 @@ defmodule Brasilex.Boleto do
       ...>   barcode: "23791843400000199003381260000000000000000040",
       ...>   bank_code: "237",
       ...>   currency_code: "9",
-      ...>   amount: 199.00,
+      ...>   amount: Decimal.new("199.00"),
       ...>   due_date: ~D[2020-07-04],
       ...>   free_field: "3381260000000000000000004"
       ...> }
@@ -40,7 +40,7 @@ defmodule Brasilex.Boleto do
           barcode: String.t(),
           bank_code: String.t() | nil,
           currency_code: String.t() | nil,
-          amount: float() | nil,
+          amount: Decimal.t() | nil,
           due_date: Date.t() | nil,
           segment: String.t() | nil,
           company_id: String.t() | nil,

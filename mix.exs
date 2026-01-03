@@ -7,7 +7,7 @@ defmodule Brasilex.MixProject do
     [
       app: :brasilex,
       name: "Brasilex",
-      version: "0.1.1",
+      version: "0.1.2",
       elixir: "~> 1.17",
       description: description(),
       package: package(),
@@ -31,6 +31,7 @@ defmodule Brasilex.MixProject do
 
   defp deps do
     [
+      {:decimal, "~> 2.0"},
       # {:req, "~> 0.5"},
       {:jason, "~> 1.4"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},

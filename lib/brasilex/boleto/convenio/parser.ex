@@ -43,8 +43,13 @@ defmodule Brasilex.Boleto.Convenio.Parser do
   # Parses amount from barcode positions 4-14 (11 digits) and converts to reais
   defp parse_amount(<<_header::binary-size(4), amount::binary-size(11), _::binary>>) do
     case String.to_integer(amount) do
-      0 -> nil
-      centavos -> centavos / 100
+      0 ->
+        nil
+
+      centavos ->
+        centavos
+        |> Decimal.new()
+        |> Decimal.div(100)
     end
   end
 

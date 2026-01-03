@@ -62,7 +62,13 @@ defmodule Brasilex.Boleto.Banking.Parser do
   # Parses amount from 10-digit string (in centavos) and converts to reais
   # Returns nil if amount is zero (means "any amount")
   defp parse_amount("0000000000"), do: nil
-  defp parse_amount(amount), do: String.to_integer(amount) / 100
+
+  defp parse_amount(amount) do
+    amount
+    |> String.to_integer()
+    |> Decimal.new()
+    |> Decimal.div(100)
+  end
 
   # Parses due date from 4-digit factor
   # Factor is the number of days since base date

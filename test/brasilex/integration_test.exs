@@ -41,7 +41,7 @@ defmodule Brasilex.IntegrationTest do
       )
 
       {:ok, boleto} = Brasilex.parse_boleto(linha_digitavel)
-      assert boleto.amount == 150.00
+      assert Decimal.equal?(boleto.amount, Decimal.new("150.00"))
     end
 
     test "parses due date from old cycle (factor results in recent date)" do
@@ -116,7 +116,7 @@ defmodule Brasilex.IntegrationTest do
       {:ok, boleto} = Brasilex.parse_boleto(linha_digitavel)
       assert boleto.type == :convenio
       assert boleto.segment == "4"
-      assert boleto.amount == 43.93
+      assert Decimal.equal?(boleto.amount, Decimal.new("43.93"))
       assert boleto.barcode == "84660000000439300481000112909184092512738037"
     end
 
@@ -129,7 +129,7 @@ defmodule Brasilex.IntegrationTest do
       {:ok, boleto} = Brasilex.parse_boleto(linha_digitavel)
       assert boleto.type == :convenio
       assert boleto.segment == "3"
-      assert boleto.amount == 1471.48
+      assert Decimal.equal?(boleto.amount, Decimal.new("1471.48"))
       assert boleto.company_id == "00481000"
       assert boleto.barcode == "83680000014714800481000875189895100252733653"
     end
@@ -143,7 +143,7 @@ defmodule Brasilex.IntegrationTest do
       {:ok, boleto} = Brasilex.parse_boleto(linha_digitavel)
       assert boleto.type == :convenio
       assert boleto.segment == "5"
-      assert boleto.amount == 87.74
+      assert Decimal.equal?(boleto.amount, Decimal.new("87.74"))
       assert boleto.barcode == "85800000000877403852535307162534953617103333"
     end
   end
@@ -190,7 +190,7 @@ defmodule Brasilex.IntegrationTest do
       assert boleto.type == :banking
       assert boleto.bank_code == "237"
       assert boleto.currency_code == "9"
-      assert boleto.amount == 150.00
+      assert Decimal.equal?(boleto.amount, Decimal.new("150.00"))
       assert boleto.due_date == ~D[2025-02-21]
       assert boleto.free_field == "1234567890123456789012345"
     end
