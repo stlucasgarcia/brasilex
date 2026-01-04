@@ -22,9 +22,15 @@
   - Linha digitável: 48 digits
   - Barcode: 44 digits
 
+### State Registration (Inscrição Estadual - IE)
+
+- [x] **Validate** IE numbers with auto-detection
+- [x] **Parse** IE into structured data with state-specific formatting
+- [x] **All 27 states** supported: AC, AL, AM, AP, BA, CE, DF, ES, GO, MA, MG, MS, MT, PA, PB, PE, PI, PR, RJ, RN, RO, RR, RS, SC, SE, SP, TO
+- [x] **Multiple state detection** - Returns all states that match when algorithms overlap
+
 ### General
 
-- [x] Zero external dependencies for core functionality
 - [x] Full typespec coverage
 - [x] Comprehensive test suite
 
@@ -37,7 +43,6 @@ Upcoming features for future releases:
 - [ ] **CEP** - Validate and format postal codes
 - [ ] **Phone** - Validate and format Brazilian phone numbers
 - [ ] **PIS/PASEP** - Validate social security numbers
-- [ ] **State Registration (IE)** - Validate state tax registration numbers
 - [ ] **Vehicle Plate** - Validate traditional and Mercosul formats
 - [ ] **CNH** - Validate driver's license numbers
 - [ ] **RENAVAM** - Validate vehicle registration numbers
@@ -50,7 +55,7 @@ Add `brasilex` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:brasilex, "~> 0.1.0"}
+    {:brasilex, "~> 0.2.0"}
   ]
 end
 ```
@@ -76,7 +81,7 @@ Brasilex.validate_boleto!("00190.00009 01234.567890 12345.678908 1 0000000000000
 #=> :ok
 
 Brasilex.validate_boleto!("invalid")
-#=> ** (Brasilex.ValidationError) Invalid linha digitável length: expected 47 or 48 digits
+#=> ** (Brasilex.ValidationError) Invalid length: wrong number of digits
 ```
 
 ### Parse a Boleto
@@ -86,7 +91,7 @@ Brasilex.validate_boleto!("invalid")
 
 boleto.type        #=> :banking
 boleto.bank_code   #=> "001"
-boleto.amount      #=> 150.00 (in reais) or nil
+boleto.amount      #=> Decimal.new("150.00") or nil
 boleto.due_date    #=> ~D[2020-07-04] or nil
 boleto.barcode     #=> "00191000000000000001234567890123456789080"
 
@@ -121,7 +126,7 @@ Bank collection boletos used for payments, invoices, etc.
 boleto.type          #=> :banking
 boleto.bank_code     #=> "237" (e.g., "001" = Banco do Brasil)
 boleto.currency_code #=> "9" (BRL)
-boleto.amount        #=> 199.00 (in reais) or nil if any amount
+boleto.amount        #=> Decimal.new("199.00") or nil if any amount
 boleto.due_date      #=> ~D[2020-07-04] or nil if no due date
 boleto.free_field    #=> "3812860000000003000000004" (25 digits of bank-defined content)
 ```
@@ -135,10 +140,84 @@ Utility bills, taxes, and government collections. First digit is always "8".
 
 boleto.type       #=> :convenio
 boleto.segment    #=> "6" (determines validation algorithm)
-boleto.amount     #=> 573.20 (in reais) or nil
+boleto.amount     #=> Decimal.new("573.20") or nil
 boleto.company_id #=> "0481018150820204176494672890166"
 boleto.free_field #=> Segment-specific content
 ```
+
+## State Registration (IE)
+
+### Validate an IE
+
+```elixir
+# Returns :ok or {:error, reason}
+Brasilex.validate_ie("110.042.490.114")
+#=> :ok
+
+Brasilex.validate_ie("12345")
+#=> {:error, :invalid_length}
+
+# Bang version raises on error
+Brasilex.validate_ie!("110.042.490.114")
+#=> :ok
+```
+
+### Parse an IE
+
+```elixir
+# Returns all states that match the IE
+{:ok, [ie]} = Brasilex.parse_ie("110.042.490.114")
+
+ie.state      #=> :sp
+ie.raw        #=> "110042490114"
+ie.formatted  #=> "110.042.490.114"
+
+# Some IEs are valid for multiple states (shared algorithms)
+{:ok, ies} = Brasilex.parse_ie("820000000")
+Enum.map(ies, & &1.state)
+#=> [:am, :sc, :se]
+
+# Each IE has state-specific formatting
+am_ie = Enum.find(ies, & &1.state == :am)
+am_ie.formatted  #=> "82.000.000-0"
+
+sc_ie = Enum.find(ies, & &1.state == :sc)
+sc_ie.formatted  #=> "820.000.000"
+```
+
+### Supported States
+
+All 27 Brazilian states are supported with their specific validation rules:
+
+| State | Digits | Algorithm | Notes |
+|-------|--------|-----------|-------|
+| AC | 13 | Mod11 (2 DVs) | Prefix "01" |
+| AL | 9 | Mod11 | Prefix "24", type codes 0,3,5,7,8 |
+| AM | 9 | Mod11 | Special case when sum < 11 |
+| AP | 9 | Mod11 | Prefix "03", special p/d values |
+| BA | 8-9 | Mod10/Mod11 | Based on first digit |
+| CE | 9 | Mod11 | Weights 9-2 |
+| DF | 13 | Mod11 (2 DVs) | Prefix "07" |
+| ES | 9 | Mod11 | Weights 9-2 |
+| GO | 9 | Mod11 | Prefixes 10, 11, 20-29 |
+| MA | 9 | Mod11 | Prefix "12" |
+| MG | 13 | Mod10 + Mod11 | 2 check digits |
+| MS | 9 | Mod11 | Prefix "28" |
+| MT | 11 | Mod11 | Single DV |
+| PA | 9 | Mod11 | Prefixes 15, 75-79 |
+| PB | 9 | Mod11 | Weights 9-2 |
+| PE | 9/14 | Mod11 | eFisco (9) or CACEPE (14) |
+| PI | 9 | Mod11 | Weights 9-2 |
+| PR | 10 | Mod11 (2 DVs) | Weights 3,2,7,6,5,4,3,2 |
+| RJ | 8 | Mod11 | Weights 2,7,6,5,4,3,2 |
+| RN | 9-10 | Mod11 | Prefix "20" |
+| RO | 9/14 | Mod11 | Legacy (9) or new (14) |
+| RR | 9 | Mod9 | Prefix "24" |
+| RS | 10 | Mod11 | Single DV |
+| SC | 9 | Mod11 | Weights 9-2 |
+| SE | 9 | Mod11 | Weights 9-2 |
+| SP | 12/13 | Custom | Regular (12) or rural "P" (13) |
+| TO | 11 | Mod11 | Type codes 01, 02, 03, 99 |
 
 ## Error Handling
 
@@ -192,7 +271,7 @@ For better type safety and developer experience, Brasilex provides struct defini
 boleto.type          #=> :banking
 boleto.bank_code     #=> String.t()
 boleto.currency_code #=> String.t()
-boleto.amount        #=> float() | nil (in reais, e.g., 199.00)
+boleto.amount        #=> Decimal.t() | nil
 boleto.due_date      #=> Date.t() | nil
 boleto.free_field    #=> String.t()
 boleto.barcode       #=> String.t()
@@ -200,10 +279,17 @@ boleto.barcode       #=> String.t()
 # Convenio boleto fields
 boleto.type       #=> :convenio
 boleto.segment    #=> String.t()
-boleto.amount     #=> float() | nil (in reais, e.g., 573.20)
+boleto.amount     #=> Decimal.t() | nil
 boleto.company_id #=> String.t()
 boleto.free_field #=> String.t()
 boleto.barcode    #=> String.t()
+
+# IE struct with parsed fields
+{:ok, [%Brasilex.IE{} = ie]} = Brasilex.parse_ie("110.042.490.114")
+
+ie.state      #=> :sp
+ie.raw        #=> "110042490114"
+ie.formatted  #=> "110.042.490.114"
 ```
 
 ### Available Structs
@@ -211,6 +297,7 @@ boleto.barcode    #=> String.t()
 | Struct                     | Description                                               |
 | -------------------------- | --------------------------------------------------------- |
 | `Brasilex.Boleto`          | Parsed boleto with all fields (type, amount, dates, etc.) |
+| `Brasilex.IE`              | Parsed state registration with state, raw, and formatted  |
 | `Brasilex.ValidationError` | Exception raised by bang functions                        |
 
 ## Validation Details

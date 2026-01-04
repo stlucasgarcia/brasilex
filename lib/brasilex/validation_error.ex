@@ -1,6 +1,6 @@
 defmodule Brasilex.ValidationError do
   @moduledoc """
-  Exception raised when boleto validation fails.
+  Exception raised when validation fails.
 
   ## Fields
 
@@ -9,11 +9,17 @@ defmodule Brasilex.ValidationError do
 
   ## Error Reasons
 
-    * `:invalid_length` - Linha digitável has wrong number of digits
-    * `:invalid_format` - Input contains non-digit characters after sanitization
-    * `:invalid_checksum` - General check digit validation failed
-    * `{:invalid_field_checksum, n}` - Field n (1-4) check digit validation failed
-    * `:unknown_type` - Could not determine boleto type from input
+  ### Boleto
+    * `:invalid_length` - Wrong number of digits
+    * `:invalid_format` - Contains invalid characters
+    * `:invalid_checksum` - Check digit validation failed
+    * `{:invalid_field_checksum, n}` - Field n check digit validation failed
+    * `:unknown_type` - Could not determine boleto type
+
+  ### State Registration (IE)
+    * `:invalid_length` - Wrong number of digits (expected 9-14)
+    * `:invalid_format` - Contains invalid characters
+    * `:invalid_checksum` - Check digit validation failed
 
   """
 
@@ -40,15 +46,15 @@ defmodule Brasilex.ValidationError do
   end
 
   defp format_message(:invalid_length) do
-    "Invalid linha digitável length: expected 47 or 48 digits"
+    "Invalid length: wrong number of digits"
   end
 
   defp format_message(:invalid_format) do
-    "Invalid format: linha digitável must contain only digits"
+    "Invalid format: contains invalid characters"
   end
 
   defp format_message(:invalid_checksum) do
-    "Invalid general check digit"
+    "Invalid check digit"
   end
 
   defp format_message({:invalid_field_checksum, field_num}) do
@@ -56,7 +62,7 @@ defmodule Brasilex.ValidationError do
   end
 
   defp format_message(:unknown_type) do
-    "Unknown boleto type: could not identify as banking or convenio"
+    "Unknown type: could not identify document type"
   end
 
   defp format_message(reason) do

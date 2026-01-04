@@ -45,9 +45,6 @@ defmodule Brasilex.Boleto.Validator do
       length not in [44, 47, 48] ->
         {:error, :invalid_length}
 
-      not String.match?(digits, ~r/^\d+$/) ->
-        {:error, :invalid_format}
-
       true ->
         {:ok, digits}
     end

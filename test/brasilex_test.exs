@@ -45,7 +45,7 @@ defmodule BrasilexTest do
         Brasilex.validate_boleto!("")
       end
 
-      assert_raise Brasilex.ValidationError, ~r/Invalid linha digitável length/, fn ->
+      assert_raise Brasilex.ValidationError, ~r/Invalid length/, fn ->
         Brasilex.validate_boleto!("12345")
       end
     end
@@ -99,6 +99,87 @@ defmodule BrasilexTest do
 
       refute Brasilex.Boleto.convenio?(banking)
       assert Brasilex.Boleto.convenio?(convenio)
+    end
+  end
+
+  # ===========================================================================
+  # IE (State Registration) - Delegate Tests
+  # ===========================================================================
+
+  describe "validate_ie/1" do
+    test "returns :ok for valid IE" do
+      assert :ok = Brasilex.validate_ie("110.042.490.114")
+    end
+
+    test "returns error for invalid IE" do
+      assert {:error, :invalid_length} = Brasilex.validate_ie("12345")
+      assert {:error, :invalid_format} = Brasilex.validate_ie("ABC123456")
+      assert {:error, :invalid_checksum} = Brasilex.validate_ie("110042490115")
+    end
+  end
+
+  describe "validate_ie!/1" do
+    test "returns :ok for valid IE" do
+      assert :ok = Brasilex.validate_ie!("110.042.490.114")
+    end
+
+    test "raises ValidationError for invalid IE" do
+      assert_raise Brasilex.ValidationError, ~r/Invalid length/, fn ->
+        Brasilex.validate_ie!("12345")
+      end
+    end
+  end
+
+  describe "parse_ie/1" do
+    test "returns list of IEs for valid input" do
+      assert {:ok, [ie]} = Brasilex.parse_ie("110.042.490.114")
+      assert ie.state == :sp
+      assert ie.raw == "110042490114"
+    end
+
+    test "returns multiple IEs when multiple states match" do
+      assert {:ok, ies} = Brasilex.parse_ie("820000000")
+      assert length(ies) > 1
+      states = Enum.map(ies, & &1.state)
+      assert :am in states
+    end
+
+    test "returns error for invalid IE" do
+      assert {:error, :invalid_length} = Brasilex.parse_ie("12345")
+    end
+  end
+
+  describe "parse_ie!/1" do
+    test "returns list of IEs for valid input" do
+      ies = Brasilex.parse_ie!("110.042.490.114")
+      assert [ie] = ies
+      assert ie.state == :sp
+    end
+
+    test "raises ValidationError for invalid IE" do
+      assert_raise Brasilex.ValidationError, fn ->
+        Brasilex.parse_ie!("12345")
+      end
+    end
+  end
+
+  describe "ValidationError" do
+    test "formats unknown_type message" do
+      error = Brasilex.ValidationError.exception(reason: :unknown_type)
+      assert error.message == "Unknown type: could not identify document type"
+      assert error.reason == :unknown_type
+    end
+
+    test "formats invalid_field_checksum message" do
+      error = Brasilex.ValidationError.exception(reason: {:invalid_field_checksum, 2})
+      assert error.message == "Invalid check digit in field 2"
+      assert error.reason == {:invalid_field_checksum, 2}
+    end
+
+    test "formats unknown reason with fallback" do
+      error = Brasilex.ValidationError.exception(reason: :some_unknown_error)
+      assert error.message == "Validation failed: :some_unknown_error"
+      assert error.reason == :some_unknown_error
     end
   end
 end

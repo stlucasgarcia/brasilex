@@ -1,11 +1,13 @@
 defmodule Brasilex do
   @moduledoc """
-  Brazilian boleto (bank slip) parser and validator.
+  Brazilian utilities for boletos, state registration, and more.
 
-  Brasilex provides functions to validate and parse Brazilian boletos,
-  supporting both the "linha digitável" (typeable line) and barcode formats.
+  Brasilex provides functions to validate and parse Brazilian documents,
+  including boletos (bank slips) and state registration numbers (IE).
 
-  ## Supported Boleto Types
+  ## Supported Features
+
+  ### Boleto (Bank Slip)
 
     * **Banking Boleto** - Bank collection boletos
       - Linha digitável: 47 digits
@@ -14,14 +16,15 @@ defmodule Brasilex do
       - Linha digitável: 48 digits
       - Barcode: 44 digits
 
+  ### State Registration (Inscrição Estadual - IE)
+
+  Validates IE numbers for all 27 Brazilian states with auto-detection:
+  AC, AL, AM, AP, BA, CE, DF, ES, GO, MA, MG, MS, MT, PA, PB, PE, PI, PR, RJ, RN, RO, RR, RS, SC, SE, SP, TO
+
   ## Usage
 
-      # Validate a boleto (linha digitável)
+      # Validate a boleto
       Brasilex.validate_boleto("23793.38128 60000.000003 00000.000400 1 84340000019900")
-      #=> :ok
-
-      # Validate a barcode (44 digits)
-      Brasilex.validate_boleto("23791843400000199003812860000000003000000004")
       #=> :ok
 
       # Parse a boleto
@@ -29,18 +32,14 @@ defmodule Brasilex do
       boleto.bank_code
       #=> "237"
 
-  ## Input Formats
+      # Validate a state registration (auto-detects state)
+      Brasilex.validate_ie("110.042.490.114")
+      #=> :ok
 
-  Both linha digitável and barcode can be provided with or without formatting:
-
-      # Linha digitável with formatting (dots, spaces, hyphens)
-      "23793.38128 60000.000003 00000.000400 1 84340000019900"
-
-      # Linha digitável without formatting (47 or 48 digits)
-      "23793381286000000000300000000400184340000019900"
-
-      # Barcode (44 digits)
-      "23791843400000199003812860000000003000000004"
+      # Parse a state registration (returns all matching states)
+      {:ok, [ie]} = Brasilex.parse_ie("110.042.490.114")
+      ie.state
+      #=> :sp
 
   ## Error Handling
 
@@ -50,116 +49,69 @@ defmodule Brasilex do
   """
 
   alias Brasilex.Boleto
-  alias Brasilex.Boleto.{Parser, Validator}
-  alias Brasilex.ValidationError
+  alias Brasilex.IE
 
-  @type linha_digitavel :: String.t()
-
-  @type validation_error ::
-          :invalid_length
-          | :invalid_format
-          | :invalid_checksum
-          | {:invalid_field_checksum, pos_integer()}
-          | :unknown_type
+  # ===========================================================================
+  # Boleto
+  # ===========================================================================
 
   @doc """
   Validates a boleto linha digitável or barcode.
 
-  Accepts both formats:
-  - Linha digitável: 47 digits (banking) or 48 digits (convenio)
-  - Barcode: 44 digits
-
-  Returns `:ok` if valid, or `{:error, reason}` if invalid.
-
-  ## Examples
-
-      iex> Brasilex.validate_boleto("12345")
-      {:error, :invalid_length}
-
-      iex> Brasilex.validate_boleto("")
-      {:error, :invalid_format}
-
-  ## Error Reasons
-
-    * `:invalid_length` - Wrong number of digits (expected 44, 47, or 48)
-    * `:invalid_format` - Contains non-digit characters
-    * `:invalid_checksum` - General check digit validation failed
-    * `{:invalid_field_checksum, n}` - Field n check digit validation failed
-    * `:unknown_type` - Could not determine boleto type
-
+  See `Brasilex.Boleto.validate/1` for details.
   """
-  @spec validate_boleto(linha_digitavel()) :: :ok | {:error, validation_error()}
-  def validate_boleto(input) when is_binary(input) do
-    Validator.validate(input)
-  end
+  defdelegate validate_boleto(input), to: Boleto, as: :validate
 
   @doc """
-  Parses a boleto linha digitável or barcode into a structured `Brasilex.Boleto`.
+  Same as `validate_boleto/1` but raises on error.
 
-  Accepts both formats:
-  - Linha digitável: 47 digits (banking) or 48 digits (convenio)
-  - Barcode: 44 digits
-
-  Validates the input before parsing. Returns `{:ok, boleto}` on success
-  or `{:error, reason}` on failure.
-
-  ## Examples
-
-      iex> Brasilex.parse_boleto("12345")
-      {:error, :invalid_length}
-
-  ## Parsed Fields
-
-  For **banking boletos** (47-digit linha digitável or 44-digit barcode):
-    * `:bank_code` - 3-digit bank code
-    * `:currency_code` - Currency indicator ("9" = BRL)
-    * `:amount` - Amount in reais as float (or nil if "any amount")
-    * `:due_date` - Due date (or nil if "no due date")
-    * `:free_field` - Bank-defined content (25 digits)
-
-  For **convenio boletos** (48-digit linha digitável or 44-digit barcode starting with "8"):
-    * `:segment` - Segment identifier
-    * `:amount` - Amount in reais as float (or nil)
-    * `:company_id` - Company/CNPJ identifier
-    * `:free_field` - Segment-specific content
-
+  See `Brasilex.Boleto.validate!/1` for details.
   """
-  @spec parse_boleto(linha_digitavel()) :: {:ok, Boleto.t()} | {:error, validation_error()}
-  def parse_boleto(input) when is_binary(input) do
-    Parser.parse(input)
-  end
+  defdelegate validate_boleto!(input), to: Boleto, as: :validate!
 
   @doc """
-  Same as `validate_boleto/1` but raises `Brasilex.ValidationError` on error.
+  Parses a boleto linha digitável or barcode.
 
-  ## Examples
-
-      iex> Brasilex.validate_boleto!("12345")
-      ** (Brasilex.ValidationError) Invalid linha digitável length: expected 47 or 48 digits
-
+  See `Brasilex.Boleto.parse/1` for details.
   """
-  @spec validate_boleto!(linha_digitavel()) :: :ok
-  def validate_boleto!(linha_digitavel) do
-    case validate_boleto(linha_digitavel) do
-      :ok -> :ok
-      {:error, reason} -> raise ValidationError, reason: reason
-    end
-  end
+  defdelegate parse_boleto(input), to: Boleto, as: :parse
 
   @doc """
-  Same as `parse_boleto/1` but raises `Brasilex.ValidationError` on error.
+  Same as `parse_boleto/1` but raises on error.
 
-  ## Examples
-
-      iex> Brasilex.parse_boleto!("12345")
-      ** (Brasilex.ValidationError) Invalid linha digitável length: expected 47 or 48 digits
-
+  See `Brasilex.Boleto.parse!/1` for details.
   """
-  @spec parse_boleto!(linha_digitavel()) :: Boleto.t()
-  def parse_boleto!(linha_digitavel) do
-    case parse_boleto(linha_digitavel) do
-      {:ok, boleto} -> boleto
-      {:error, reason} -> raise ValidationError, reason: reason
-    end
-  end
+  defdelegate parse_boleto!(input), to: Boleto, as: :parse!
+
+  # ===========================================================================
+  # State Registration (Inscrição Estadual - IE)
+  # ===========================================================================
+
+  @doc """
+  Validates a State Registration (IE) number.
+
+  See `Brasilex.IE.validate/1` for details.
+  """
+  defdelegate validate_ie(input), to: IE, as: :validate
+
+  @doc """
+  Same as `validate_ie/1` but raises on error.
+
+  See `Brasilex.IE.validate!/1` for details.
+  """
+  defdelegate validate_ie!(input), to: IE, as: :validate!
+
+  @doc """
+  Parses a State Registration (IE) number.
+
+  Returns all possible state matches. See `Brasilex.IE.parse/1` for details.
+  """
+  defdelegate parse_ie(input), to: IE, as: :parse
+
+  @doc """
+  Same as `parse_ie/1` but raises on error.
+
+  See `Brasilex.IE.parse!/1` for details.
+  """
+  defdelegate parse_ie!(input), to: IE, as: :parse!
 end

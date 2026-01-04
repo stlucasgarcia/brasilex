@@ -32,7 +32,18 @@ defmodule Brasilex.Boleto do
 
   """
 
+  alias Brasilex.Boleto.Parser
+  alias Brasilex.Boleto.Validator
+  alias Brasilex.ValidationError
+
   @type boleto_type :: :banking | :convenio
+
+  @type validation_error ::
+          :invalid_length
+          | :invalid_format
+          | :invalid_checksum
+          | {:invalid_field_checksum, pos_integer()}
+          | :unknown_type
 
   @type t :: %__MODULE__{
           type: boleto_type(),
@@ -60,6 +71,107 @@ defmodule Brasilex.Boleto do
     :company_id,
     :free_field
   ]
+
+  @doc """
+  Validates a boleto linha digitável or barcode.
+
+  Accepts both formats:
+  - Linha digitável: 47 digits (banking) or 48 digits (convenio)
+  - Barcode: 44 digits
+
+  Returns `:ok` if valid, or `{:error, reason}` if invalid.
+
+  ## Examples
+
+      iex> Brasilex.Boleto.validate("12345")
+      {:error, :invalid_length}
+
+      iex> Brasilex.Boleto.validate("")
+      {:error, :invalid_format}
+
+  ## Error Reasons
+
+    * `:invalid_length` - Wrong number of digits (expected 44, 47, or 48)
+    * `:invalid_format` - Contains non-digit characters
+    * `:invalid_checksum` - General check digit validation failed
+    * `{:invalid_field_checksum, n}` - Field n check digit validation failed
+    * `:unknown_type` - Could not determine boleto type
+
+  """
+  @spec validate(String.t()) :: :ok | {:error, validation_error()}
+  def validate(input) when is_binary(input) do
+    Validator.validate(input)
+  end
+
+  @doc """
+  Same as `validate/1` but raises `Brasilex.ValidationError` on error.
+
+  ## Examples
+
+      iex> Brasilex.Boleto.validate!("12345")
+      ** (Brasilex.ValidationError) Invalid length: wrong number of digits
+
+  """
+  @spec validate!(String.t()) :: :ok
+  def validate!(input) when is_binary(input) do
+    case validate(input) do
+      :ok -> :ok
+      {:error, reason} -> raise ValidationError, reason: reason
+    end
+  end
+
+  @doc """
+  Parses a boleto linha digitável or barcode into a structured `Brasilex.Boleto`.
+
+  Accepts both formats:
+  - Linha digitável: 47 digits (banking) or 48 digits (convenio)
+  - Barcode: 44 digits
+
+  Validates the input before parsing. Returns `{:ok, boleto}` on success
+  or `{:error, reason}` on failure.
+
+  ## Examples
+
+      iex> Brasilex.Boleto.parse("12345")
+      {:error, :invalid_length}
+
+  ## Parsed Fields
+
+  For **banking boletos** (47-digit linha digitável or 44-digit barcode):
+    * `:bank_code` - 3-digit bank code
+    * `:currency_code` - Currency indicator ("9" = BRL)
+    * `:amount` - Amount in reais as float (or nil if "any amount")
+    * `:due_date` - Due date (or nil if "no due date")
+    * `:free_field` - Bank-defined content (25 digits)
+
+  For **convenio boletos** (48-digit linha digitável or 44-digit barcode starting with "8"):
+    * `:segment` - Segment identifier
+    * `:amount` - Amount in reais as float (or nil)
+    * `:company_id` - Company/CNPJ identifier
+    * `:free_field` - Segment-specific content
+
+  """
+  @spec parse(String.t()) :: {:ok, t()} | {:error, validation_error()}
+  def parse(input) when is_binary(input) do
+    Parser.parse(input)
+  end
+
+  @doc """
+  Same as `parse/1` but raises `Brasilex.ValidationError` on error.
+
+  ## Examples
+
+      iex> Brasilex.Boleto.parse!("12345")
+      ** (Brasilex.ValidationError) Invalid length: wrong number of digits
+
+  """
+  @spec parse!(String.t()) :: t()
+  def parse!(input) when is_binary(input) do
+    case parse(input) do
+      {:ok, boleto} -> boleto
+      {:error, reason} -> raise ValidationError, reason: reason
+    end
+  end
 
   @doc """
   Returns true if this is a bank collection boleto (47 digits).

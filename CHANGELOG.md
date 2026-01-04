@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-01-04
+
+### Added
+
+- **State Registration (Inscrição Estadual - IE)** validation and parsing
+  - `Brasilex.validate_ie/1` - Validate IE number
+  - `Brasilex.validate_ie!/1` - Validate with exception on error
+  - `Brasilex.parse_ie/1` - Parse IE into structured data (returns all matching states)
+  - `Brasilex.parse_ie!/1` - Parse with exception on error
+  - Support for all 27 Brazilian states: AC, AL, AM, AP, BA, CE, DF, ES, GO, MA, MG, MS, MT, PA, PB, PE, PI, PR, RJ, RN, RO, RR, RS, SC, SE, SP, TO
+  - Auto-detection of state based on length, prefix, and checksum algorithm
+  - State-specific formatting for parsed IEs
+  - `Brasilex.IE` struct with `:state`, `:raw`, and `:formatted` fields
+
+### Changed
+
+- **Breaking:** `parse_ie/1` returns `{:ok, [IE.t()]}` (list of all matching states) instead of a single IE
+  - Some states share identical validation algorithms, making them indistinguishable
+  - Example: `Brasilex.parse_ie("820000000")` returns IEs for `:am`, `:sc`, `:se`
+- Refactored main `Brasilex` module to delegate to `Brasilex.Boleto` and `Brasilex.IE`
+  - Functions are now also available directly: `Brasilex.Boleto.validate/1`, `Brasilex.IE.parse/1`
+- Internal code improvements:
+  - Replaced 27 `format_for_state/2` function clauses with a module map
+  - Removed redundant regex validation in boleto sanitization
+
 ## [0.1.2] - 2026-01-02
 
 ### Changed
