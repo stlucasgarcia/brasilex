@@ -10,13 +10,14 @@ defmodule Brasilex.IntegrationTest do
   describe "banking boleto (47 digits) round-trip" do
     test "generates, validates, and parses a valid banking boleto" do
       # Build a valid linha digitável with correct checksums
-      linha_digitavel = build_valid_banking_boleto(
-        bank_code: "001",
-        currency: "9",
-        free_field: "0000000000000000000000000",
-        due_factor: "0000",
-        amount: "0000000000"
-      )
+      linha_digitavel =
+        build_valid_banking_boleto(
+          bank_code: "001",
+          currency: "9",
+          free_field: "0000000000000000000000000",
+          due_factor: "0000",
+          amount: "0000000000"
+        )
 
       # Validate
       assert :ok = Brasilex.validate_boleto(linha_digitavel)
@@ -26,48 +27,50 @@ defmodule Brasilex.IntegrationTest do
       assert boleto.type == :banking
       assert boleto.bank_code == "001"
       assert boleto.currency_code == "9"
-      assert boleto.amount == nil  # zero amount = nil
-      assert boleto.due_date == nil  # zero due factor = nil
+      # zero amount = nil
+      assert boleto.amount == nil
+      # zero due factor = nil
+      assert boleto.due_date == nil
     end
 
     test "parses amount correctly" do
       # R$ 150.00
-      linha_digitavel = build_valid_banking_boleto(
-        bank_code: "237",
-        currency: "9",
-        free_field: "0000000000000000000000000",
-        due_factor: "0000",
-        amount: "0000015000"
-      )
+      linha_digitavel =
+        build_valid_banking_boleto(
+          bank_code: "237",
+          currency: "9",
+          free_field: "0000000000000000000000000",
+          due_factor: "0000",
+          amount: "0000015000"
+        )
 
       {:ok, boleto} = Brasilex.parse_boleto(linha_digitavel)
       assert Decimal.equal?(boleto.amount, Decimal.new("150.00"))
     end
 
-    test "parses due date from old cycle (factor results in recent date)" do
-      # Factor 9999 = 2025-02-21 using old base (last date of old cycle)
-      linha_digitavel = build_valid_banking_boleto(
-        bank_code: "341",
-        currency: "9",
-        free_field: "0000000000000000000000000",
-        due_factor: "9999",
-        amount: "0000000100"
-      )
+    test "parses an unambiguous legacy due date factor" do
+      linha_digitavel =
+        build_valid_banking_boleto(
+          bank_code: "341",
+          currency: "9",
+          free_field: "0000000000000000000000000",
+          due_factor: "0999",
+          amount: "0000000100"
+        )
 
       {:ok, boleto} = Brasilex.parse_boleto(linha_digitavel)
-      assert boleto.due_date == ~D[2025-02-21]
+      assert boleto.due_date == ~D[2000-07-02]
     end
 
-    test "parses due date from new cycle (factor 1000 = 2025-02-22)" do
-      # Factor 1000 with new base (2022-05-29) = 2025-02-22
-      # This triggers new cycle because old base would give 2000-07-03 (>5 years ago)
-      linha_digitavel = build_valid_banking_boleto(
-        bank_code: "341",
-        currency: "9",
-        free_field: "0000000000000000000000000",
-        due_factor: "1000",
-        amount: "0000000100"
-      )
+    test "parses due date from the post-2025 cycle (factor 1000 = 2025-02-22)" do
+      linha_digitavel =
+        build_valid_banking_boleto(
+          bank_code: "341",
+          currency: "9",
+          free_field: "0000000000000000000000000",
+          due_factor: "1000",
+          amount: "0000000100"
+        )
 
       {:ok, boleto} = Brasilex.parse_boleto(linha_digitavel)
       assert boleto.due_date == ~D[2025-02-22]
@@ -75,13 +78,15 @@ defmodule Brasilex.IntegrationTest do
 
     test "extracts free field correctly" do
       free_field = "1234567890123456789012345"
-      linha_digitavel = build_valid_banking_boleto(
-        bank_code: "033",
-        currency: "9",
-        free_field: free_field,
-        due_factor: "0000",
-        amount: "0000000000"
-      )
+
+      linha_digitavel =
+        build_valid_banking_boleto(
+          bank_code: "033",
+          currency: "9",
+          free_field: free_field,
+          due_factor: "0000",
+          amount: "0000000000"
+        )
 
       {:ok, boleto} = Brasilex.parse_boleto(linha_digitavel)
       assert boleto.free_field == free_field
@@ -91,12 +96,13 @@ defmodule Brasilex.IntegrationTest do
   describe "convenio boleto (48 digits) round-trip" do
     test "generates, validates, and parses a valid convenio boleto" do
       # Build a valid convenio boleto
-      linha_digitavel = build_valid_convenio_boleto(
-        segment: "6",
-        amount: "00000000000",
-        company_id: "00000000",
-        free_field: "000000000000000000000"
-      )
+      linha_digitavel =
+        build_valid_convenio_boleto(
+          segment: "6",
+          amount: "00000000000",
+          company_id: "00000000",
+          free_field: "000000000000000000000"
+        )
 
       # Validate
       assert :ok = Brasilex.validate_boleto(linha_digitavel)
@@ -146,17 +152,26 @@ defmodule Brasilex.IntegrationTest do
       assert Decimal.equal?(boleto.amount, Decimal.new("87.74"))
       assert boleto.barcode == "85800000000877403852535307162534953617103333"
     end
+
+    test "rejects a linha digitavel whose barcode DV was tampered" do
+      valid = "846600000000439300481009011290918405925127380374"
+      invalid = tamper_convenio_general_dv(valid)
+
+      assert {:error, :invalid_checksum} = Brasilex.validate_boleto(invalid)
+      assert {:error, :invalid_checksum} = Brasilex.parse_boleto(invalid)
+    end
   end
 
   describe "formatted input" do
     test "accepts boleto with dots and spaces" do
-      linha_digitavel = build_valid_banking_boleto(
-        bank_code: "001",
-        currency: "9",
-        free_field: "0000000000000000000000000",
-        due_factor: "0000",
-        amount: "0000000000"
-      )
+      linha_digitavel =
+        build_valid_banking_boleto(
+          bank_code: "001",
+          currency: "9",
+          free_field: "0000000000000000000000000",
+          due_factor: "0000",
+          amount: "0000000000"
+        )
 
       # Add formatting
       formatted = format_banking_linha_digitavel(linha_digitavel)
@@ -169,14 +184,15 @@ defmodule Brasilex.IntegrationTest do
 
   describe "banking barcode (44 digits) round-trip" do
     test "validates and parses a banking barcode" do
-      # First build a valid linha digitável with factor 9999 (old cycle)
-      linha_digitavel = build_valid_banking_boleto(
-        bank_code: "237",
-        currency: "9",
-        free_field: "1234567890123456789012345",
-        due_factor: "9999",
-        amount: "0000015000"
-      )
+      # First build a valid linha digitável with a post-reset due factor.
+      linha_digitavel =
+        build_valid_banking_boleto(
+          bank_code: "237",
+          currency: "9",
+          free_field: "1234567890123456789012345",
+          due_factor: "1000",
+          amount: "0000015000"
+        )
 
       # Parse to get the barcode
       {:ok, boleto_from_linha} = Brasilex.parse_boleto(linha_digitavel)
@@ -191,18 +207,19 @@ defmodule Brasilex.IntegrationTest do
       assert boleto.bank_code == "237"
       assert boleto.currency_code == "9"
       assert Decimal.equal?(boleto.amount, Decimal.new("150.00"))
-      assert boleto.due_date == ~D[2025-02-21]
+      assert boleto.due_date == ~D[2025-02-22]
       assert boleto.free_field == "1234567890123456789012345"
     end
 
     test "barcode and linha digitável produce same parsed values" do
-      linha_digitavel = build_valid_banking_boleto(
-        bank_code: "001",
-        currency: "9",
-        free_field: "9876543210987654321098765",
-        due_factor: "8434",
-        amount: "0000019900"
-      )
+      linha_digitavel =
+        build_valid_banking_boleto(
+          bank_code: "001",
+          currency: "9",
+          free_field: "9876543210987654321098765",
+          due_factor: "8434",
+          amount: "0000019900"
+        )
 
       {:ok, boleto_linha} = Brasilex.parse_boleto(linha_digitavel)
       {:ok, boleto_barcode} = Brasilex.parse_boleto(boleto_linha.barcode)
@@ -219,12 +236,13 @@ defmodule Brasilex.IntegrationTest do
   describe "convenio barcode (44 digits) round-trip" do
     test "validates and parses a convenio barcode" do
       # First build a valid convenio linha digitável
-      linha_digitavel = build_valid_convenio_boleto(
-        segment: "6",
-        amount: "00000057320",
-        company_id: "04810181",
-        free_field: "508202041764946728901"
-      )
+      linha_digitavel =
+        build_valid_convenio_boleto(
+          segment: "6",
+          amount: "00000057320",
+          company_id: "04810181",
+          free_field: "508202041764946728901"
+        )
 
       # Parse to get the barcode
       {:ok, boleto_from_linha} = Brasilex.parse_boleto(linha_digitavel)
@@ -286,7 +304,7 @@ defmodule Brasilex.IntegrationTest do
     # Convenio barcode structure (44 digits):
     # - Position 0: "8" (product ID)
     # - Position 1: segment (identifies service type)
-    # - Position 2: value type (determines checksum algorithm: 6,7,8,9 = Mod10)
+    # - Position 2: value type (determines checksum algorithm: 6,7 = Mod10; 8,9 = Mod11)
     # - Position 3: general DV (calculated on positions 0-2 + 4-43)
     # - Positions 4-43: amount + company_id + free_field
 
@@ -294,37 +312,58 @@ defmodule Brasilex.IntegrationTest do
     value_type = "6"
 
     # Build barcode payload WITHOUT the general DV (43 chars)
-    header = "8" <> segment <> value_type  # product + segment + value_type = 3 chars
-    rest = amount <> company_id <> free_field  # 11 + 8 + 21 = 40 chars
-    barcode_payload = header <> rest  # 43 chars (missing general DV)
+    # product + segment + value_type = 3 chars
+    header = "8" <> segment <> value_type
+    # 11 + 8 + 21 = 40 chars
+    rest = amount <> company_id <> free_field
+    # 43 chars (missing general DV)
+    barcode_payload = header <> rest
 
     # Calculate general DV using Mod10 (for value_type 6,7,8,9)
     general_dv = Mod10.calculate(barcode_payload)
 
     # Insert general DV at position 3
     <<prefix::binary-size(3), suffix::binary>> = barcode_payload
-    full_barcode = prefix <> Integer.to_string(general_dv) <> suffix  # 44 chars
+    # 44 chars
+    full_barcode = prefix <> Integer.to_string(general_dv) <> suffix
 
     # Split barcode into 4 parts of 11 chars each
     parts = for i <- 0..3, do: binary_part(full_barcode, i * 11, 11)
 
     # Add field DV to each part (using Mod10 for value_type 6,7,8,9)
-    fields = Enum.map(parts, fn part ->
-      dv = Mod10.calculate(part)
-      part <> Integer.to_string(dv)
-    end)
+    fields =
+      Enum.map(parts, fn part ->
+        dv = Mod10.calculate(part)
+        part <> Integer.to_string(dv)
+      end)
 
     Enum.join(fields)
   end
 
   defp format_banking_linha_digitavel(linha) do
     # Format: XXXXX.XXXXX XXXXX.XXXXXX XXXXX.XXXXXX X XXXXXXXXXXXXXX
-    <<f1::binary-size(5), f2::binary-size(5),
-      f3::binary-size(5), f4::binary-size(6),
-      f5::binary-size(5), f6::binary-size(6),
-      f7::binary-size(1),
-      f8::binary-size(14)>> = linha
+    <<f1::binary-size(5), f2::binary-size(5), f3::binary-size(5), f4::binary-size(6),
+      f5::binary-size(5), f6::binary-size(6), f7::binary-size(1), f8::binary-size(14)>> = linha
 
     "#{f1}.#{f2} #{f3}.#{f4} #{f5}.#{f6} #{f7} #{f8}"
+  end
+
+  defp tamper_convenio_general_dv(linha_digitavel) do
+    <<field1_payload::binary-size(11), _field1_dv::binary-size(1), rest::binary>> =
+      linha_digitavel
+
+    <<prefix::binary-size(3), dv::binary-size(1), suffix::binary-size(7)>> = field1_payload
+
+    tampered_dv =
+      dv
+      |> String.to_integer()
+      |> Kernel.+(1)
+      |> rem(10)
+      |> Integer.to_string()
+
+    tampered_field1_payload = prefix <> tampered_dv <> suffix
+    tampered_field1_dv = Mod10.calculate(tampered_field1_payload)
+
+    tampered_field1_payload <> Integer.to_string(tampered_field1_dv) <> rest
   end
 end

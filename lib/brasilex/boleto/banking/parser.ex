@@ -5,28 +5,33 @@ defmodule Brasilex.Boleto.Banking.Parser do
 
   alias Brasilex.Boleto
 
-  # Base dates for due date factor calculation (FEBRABAN specification)
-  # The factor rolled over on 2025-02-22: factor 9999 (old) = 2025-02-21, factor 1000 (new) = 2025-02-22
-  @old_base_date ~D[1997-10-07]
-  @new_base_date ~D[2022-05-29]
+  # FEBRABAN reset the due-date factor cycle on 2025-02-22.
+  # Factors 0001-0999 only exist in the legacy cycle, while 1000+ is ambiguous
+  # between pre-reset and post-reset boletos. Brasilex keeps parsing deterministic
+  # by interpreting 1000+ with the post-reset base.
+  @legacy_base_date ~D[1997-10-07]
+  @current_cycle_base_date ~D[2022-05-29]
+  @current_cycle_first_factor 1000
 
   @doc """
   Parses a validated 47-digit linha digitável into a Boleto struct.
   """
   @spec parse(String.t()) :: {:ok, Boleto.t()}
-  def parse(<<
-        bank_code::binary-size(3),
-        currency::binary-size(1),
-        free1::binary-size(5),
-        _dv1::binary-size(1),
-        free2::binary-size(10),
-        _dv2::binary-size(1),
-        free3::binary-size(10),
-        _dv3::binary-size(1),
-        _general_dv::binary-size(1),
-        due_factor::binary-size(4),
-        amount::binary-size(10)
-      >> = raw) do
+  def parse(
+        <<
+          bank_code::binary-size(3),
+          currency::binary-size(1),
+          free1::binary-size(5),
+          _dv1::binary-size(1),
+          free2::binary-size(10),
+          _dv2::binary-size(1),
+          free3::binary-size(10),
+          _dv3::binary-size(1),
+          _general_dv::binary-size(1),
+          due_factor::binary-size(4),
+          amount::binary-size(10)
+        >> = raw
+      ) do
     barcode = build_barcode(raw)
 
     boleto = %Boleto{
@@ -75,24 +80,21 @@ defmodule Brasilex.Boleto.Banking.Parser do
   # Returns nil if factor is "0000" (means "no due date")
   #
   # FEBRABAN rollover (2025-02-22):
-  # - Old cycle: base 1997-10-07, factor 1000 = 2000-07-03, factor 9999 = 2025-02-21
-  # - New cycle: base 2022-05-29, factor 1000 = 2025-02-22
+  # - Legacy cycle: base 1997-10-07, factor 0999 = 2000-07-02
+  # - Current cycle: base 2022-05-29, factor 1000 = 2025-02-22
   #
-  # To determine which cycle: if old base calculation results in a date
-  # more than 5 years in the past, use new base instead.
+  # Factors 1000-9999 are ambiguous if you need to reconstruct a pre-reset
+  # boleto exactly. This parser chooses the current cycle consistently so the
+  # same input never changes meaning over time.
   defp parse_due_date("0000"), do: nil
 
   defp parse_due_date(factor) do
-    days = String.to_integer(factor)
-    old_date = Date.add(@old_base_date, days)
+    case String.to_integer(factor) do
+      days when days < @current_cycle_first_factor ->
+        Date.add(@legacy_base_date, days)
 
-    # If calculated date is more than 5 years ago, assume it's from the new cycle
-    cutoff = Date.add(Date.utc_today(), -365 * 5)
-
-    if Date.compare(old_date, cutoff) == :lt do
-      Date.add(@new_base_date, days)
-    else
-      old_date
+      days ->
+        Date.add(@current_cycle_base_date, days)
     end
   end
 
@@ -100,14 +102,16 @@ defmodule Brasilex.Boleto.Banking.Parser do
   Parses a validated 44-digit banking barcode into a Boleto struct.
   """
   @spec parse_barcode(String.t()) :: {:ok, Boleto.t()}
-  def parse_barcode(<<
-        bank_code::binary-size(3),
-        currency::binary-size(1),
-        _dv::binary-size(1),
-        due_factor::binary-size(4),
-        amount::binary-size(10),
-        free_field::binary-size(25)
-      >> = barcode) do
+  def parse_barcode(
+        <<
+          bank_code::binary-size(3),
+          currency::binary-size(1),
+          _dv::binary-size(1),
+          due_factor::binary-size(4),
+          amount::binary-size(10),
+          free_field::binary-size(25)
+        >> = barcode
+      ) do
     boleto = %Boleto{
       type: :banking,
       raw: barcode,

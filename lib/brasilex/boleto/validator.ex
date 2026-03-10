@@ -35,18 +35,24 @@ defmodule Brasilex.Boleto.Validator do
   """
   @spec sanitize(String.t()) :: {:ok, String.t()} | {:error, :invalid_format | :invalid_length}
   def sanitize(input) when is_binary(input) do
-    digits = String.replace(input, ~r/[^0-9]/, "")
-    length = String.length(digits)
-
     cond do
-      length == 0 ->
+      not String.match?(input, ~r/^[0-9.\-\s]+$/) ->
         {:error, :invalid_format}
 
-      length not in [44, 47, 48] ->
-        {:error, :invalid_length}
-
       true ->
-        {:ok, digits}
+        digits = String.replace(input, ~r/[\.\-\s]/, "")
+        length = String.length(digits)
+
+        cond do
+          length == 0 ->
+            {:error, :invalid_format}
+
+          length in [44, 47, 48] ->
+            {:ok, digits}
+
+          true ->
+            {:error, :invalid_length}
+        end
     end
   end
 

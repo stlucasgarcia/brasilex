@@ -10,7 +10,7 @@ defmodule Brasilex.Boleto.Convenio.Validator do
   # - Position 1: segment (identifies type of service)
   # - Position 2: value type (determines checksum algorithm)
   #   - 6, 7: effective value, Mod 10
-  #   - 8, 9: reference value, Mod 10
+  #   - 8, 9: reference value, Mod 11
   #   - Others: Mod 11
   # - Position 3: general DV
   # - Positions 4+: value and company/free data
@@ -26,7 +26,12 @@ defmodule Brasilex.Boleto.Convenio.Validator do
       )
       when byte_size(digits) == 48 do
     mod_type = get_mod_type(value_type)
-    validate_fields(digits, mod_type)
+
+    with :ok <- validate_fields(digits, mod_type) do
+      digits
+      |> to_barcode()
+      |> validate_barcode()
+    end
   end
 
   def validate(_), do: {:error, :invalid_length}
@@ -60,6 +65,13 @@ defmodule Brasilex.Boleto.Convenio.Validator do
   # Uses convenio Mod11 which maps 0, 10, 11 → 0 (different from banking)
   defp valid_field?(<<payload::binary-size(11), dv::binary-size(1)>>, :mod11) do
     Mod11.valid_convenio?(payload, dv)
+  end
+
+  # Removes the per-field DVs to reconstruct the 44-digit barcode representation.
+  defp to_barcode(digits) do
+    for i <- 0..3, into: "" do
+      binary_part(digits, i * 12, 11)
+    end
   end
 
   @doc """

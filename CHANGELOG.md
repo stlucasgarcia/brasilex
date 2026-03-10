@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-03-10
+
+### Fixed
+
+- Rejected boleto inputs that contain arbitrary non-formatting characters instead of silently stripping them
+- Validated convenio linha digitável against the reconstructed barcode DV, preventing tampered inputs from passing field-only checks
+- Made banking due date factor decoding deterministic so the same boleto no longer changes meaning over time
+
 ## [0.2.0] - 2026-01-04
 
 ### Added

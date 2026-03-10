@@ -82,6 +82,14 @@ defmodule BrasilexTest do
       assert {:error, reason} = result
       assert reason != :invalid_format
     end
+
+    test "rejects arbitrary non-formatting characters" do
+      valid = "846600000000439300481009011290918405925127380374"
+      input = "abc#{valid}xyz"
+
+      assert {:error, :invalid_format} = Brasilex.validate_boleto(input)
+      assert {:error, :invalid_format} = Brasilex.parse_boleto(input)
+    end
   end
 
   describe "Boleto struct helpers" do
