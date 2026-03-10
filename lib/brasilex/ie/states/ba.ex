@@ -40,7 +40,9 @@ defmodule Brasilex.IE.States.BA do
   end
 
   # 9-digit validation
-  defp validate_9_digits(<<_first::binary-size(1), second::binary-size(1), _rest::binary>> = digits) do
+  defp validate_9_digits(
+         <<_first::binary-size(1), second::binary-size(1), _rest::binary>> = digits
+       ) do
     modulo = get_modulo(second)
     validate_with_modulo(digits, modulo, 9)
   end

@@ -91,7 +91,10 @@ defmodule Brasilex.IE.States.PE do
     "#{payload}-#{dv}"
   end
 
-  def format(<<a::binary-size(2), b::binary-size(1), c::binary-size(3), d::binary-size(7), e::binary-size(1)>>) do
+  def format(
+        <<a::binary-size(2), b::binary-size(1), c::binary-size(3), d::binary-size(7),
+          e::binary-size(1)>>
+      ) do
     "#{a}.#{b}.#{c}.#{d}-#{e}"
   end
 

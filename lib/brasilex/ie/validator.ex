@@ -6,7 +6,33 @@ defmodule Brasilex.IE.Validator do
   # based on length and prefix patterns.
 
   alias Brasilex.IE.States.{
-    AC, AL, AM, AP, BA, CE, DF, ES, GO, MA, MG, MS, MT, PA, PB, PE, PI, PR, RJ, RN, RO, RR, RS, SC, SE, SP, TO
+    AC,
+    AL,
+    AM,
+    AP,
+    BA,
+    CE,
+    DF,
+    ES,
+    GO,
+    MA,
+    MG,
+    MS,
+    MT,
+    PA,
+    PB,
+    PE,
+    PI,
+    PR,
+    RJ,
+    RN,
+    RO,
+    RR,
+    RS,
+    SC,
+    SE,
+    SP,
+    TO
   }
 
   @doc """
@@ -154,7 +180,8 @@ defmodule Brasilex.IE.Validator do
     [{:pa, PA}]
   end
 
-  defp get_candidate_validators(<<"20", _rest::binary>> = digits) when byte_size(digits) in [9, 10] do
+  defp get_candidate_validators(<<"20", _rest::binary>> = digits)
+       when byte_size(digits) in [9, 10] do
     [{:rn, RN}]
   end
 
@@ -163,8 +190,17 @@ defmodule Brasilex.IE.Validator do
     # GO has prefixes 10, 11, 20-29 - check these first, then fallback
     # PE eFisco (9 digits) uses 2 check digits - put after single-check validators
     [
-      {:go, GO}, {:ba, BA}, {:am, AM}, {:ce, CE}, {:es, ES},
-      {:pb, PB}, {:pi, PI}, {:sc, SC}, {:se, SE}, {:pe, PE}, {:ro, RO}
+      {:go, GO},
+      {:ba, BA},
+      {:am, AM},
+      {:ce, CE},
+      {:es, ES},
+      {:pb, PB},
+      {:pi, PI},
+      {:sc, SC},
+      {:se, SE},
+      {:pe, PE},
+      {:ro, RO}
     ]
   end
 

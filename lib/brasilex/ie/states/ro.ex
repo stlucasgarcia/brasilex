@@ -48,7 +48,9 @@ defmodule Brasilex.IE.States.RO do
     String.to_integer(dv) == calculated
   end
 
-  defp valid_checksum_9?(<<_municipality::binary-size(3), enterprise::binary-size(5), dv::binary-size(1)>>) do
+  defp valid_checksum_9?(
+         <<_municipality::binary-size(3), enterprise::binary-size(5), dv::binary-size(1)>>
+       ) do
     calculated = calculate_dv(enterprise, @weights_9)
     String.to_integer(dv) == calculated
   end

@@ -21,7 +21,8 @@ defmodule Brasilex.IE.States.AL do
   Validates an Alagoas IE number (9 digits, prefix "24").
   """
   @spec validate(String.t()) :: :ok | {:error, atom()}
-  def validate(<<"24", type::binary-size(1), _rest::binary>> = digits) when byte_size(digits) == 9 do
+  def validate(<<"24", type::binary-size(1), _rest::binary>> = digits)
+      when byte_size(digits) == 9 do
     if type in @valid_types do
       if valid_checksum?(digits), do: :ok, else: {:error, :invalid_checksum}
     else

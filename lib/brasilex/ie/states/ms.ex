@@ -49,7 +49,7 @@ defmodule Brasilex.IE.States.MS do
 
     cond do
       remainder == 0 -> 0
-      (11 - remainder) > 9 -> 0
+      11 - remainder > 9 -> 0
       true -> 11 - remainder
     end
   end

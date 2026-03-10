@@ -55,7 +55,10 @@ defmodule Brasilex.IE.States.AC do
   Formats an IE number in AC format: NN.NNN.NNN/NNN-NN
   """
   @spec format(String.t()) :: String.t()
-  def format(<<a::binary-size(2), b::binary-size(3), c::binary-size(3), d::binary-size(3), e::binary-size(2)>>) do
+  def format(
+        <<a::binary-size(2), b::binary-size(3), c::binary-size(3), d::binary-size(3),
+          e::binary-size(2)>>
+      ) do
     "#{a}.#{b}.#{c}/#{d}-#{e}"
   end
 

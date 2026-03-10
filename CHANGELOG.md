@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Refactored boleto input sanitization conditionals to satisfy Credo without changing behavior
+
 ## [0.2.1] - 2026-03-10
 
 ### Fixed
