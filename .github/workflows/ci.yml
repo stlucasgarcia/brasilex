@@ -39,7 +39,7 @@ jobs:
           elixir-version: ${{ matrix.elixir }}
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             deps
@@ -72,7 +72,7 @@ jobs:
           elixir-version: "1.18"
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             deps
