@@ -2,26 +2,38 @@ defmodule Brasilex.Boleto.Validator do
   @moduledoc false
   # Internal module for validation dispatch.
   #
-  # Handles sanitization, type detection, and routing to the
-  # appropriate validator (Banking or Convenio).
+  # Owns sanitization, type detection, and per-type validation routing.
+  # `Brasilex.Boleto.Parser` calls `validate_typed/1` to reuse the
+  # detection and validation work before parsing.
   #
   # Supports both linha digitável (47/48 digits) and barcode (44 digits).
 
   alias Brasilex.Boleto.{Banking, Convenio}
 
+  @type type :: :banking | :convenio
+  @type format :: :linha_digitavel | :barcode
+
   @doc """
-  Validates a linha digitável or barcode, dispatching to the appropriate validator.
+  Validates a linha digitável or barcode.
   """
   @spec validate(String.t()) :: :ok | {:error, atom() | tuple()}
   def validate(input) do
+    with {:ok, _type, _format, _digits} <- validate_typed(input), do: :ok
+  end
+
+  @doc """
+  Validates and returns the detected type, format, and sanitized digits.
+
+  Used by `Brasilex.Boleto.Parser` so parsing reuses the validation pass
+  rather than re-detecting type and re-running checksum verification.
+  """
+  @spec validate_typed(String.t()) ::
+          {:ok, type(), format(), String.t()} | {:error, atom() | tuple()}
+  def validate_typed(input) do
     with {:ok, digits} <- sanitize(input),
-         {:ok, type, format} <- detect_type(digits) do
-      case {type, format} do
-        {:banking, :linha_digitavel} -> Banking.Validator.validate(digits)
-        {:banking, :barcode} -> Banking.Validator.validate_barcode(digits)
-        {:convenio, :linha_digitavel} -> Convenio.Validator.validate(digits)
-        {:convenio, :barcode} -> Convenio.Validator.validate_barcode(digits)
-      end
+         {:ok, type, format} <- detect_type(digits),
+         :ok <- validate_digits(type, format, digits) do
+      {:ok, type, format, digits}
     end
   end
 
@@ -40,14 +52,9 @@ defmodule Brasilex.Boleto.Validator do
       length = String.length(digits)
 
       cond do
-        length == 0 ->
-          {:error, :invalid_format}
-
-        length in [44, 47, 48] ->
-          {:ok, digits}
-
-        true ->
-          {:error, :invalid_length}
+        length == 0 -> {:error, :invalid_format}
+        length in [44, 47, 48] -> {:ok, digits}
+        true -> {:error, :invalid_length}
       end
     else
       {:error, :invalid_format}
@@ -67,8 +74,7 @@ defmodule Brasilex.Boleto.Validator do
   - 47 digits: Banking linha digitável
   - 48 digits starting with "8": Convenio linha digitável
   """
-  @spec detect_type(String.t()) ::
-          {:ok, :banking | :convenio, :linha_digitavel | :barcode} | {:error, :unknown_type}
+  @spec detect_type(String.t()) :: {:ok, type(), format()} | {:error, :unknown_type}
   def detect_type(<<first::binary-size(1), _rest::binary>> = digits) do
     case {String.length(digits), first} do
       {44, "8"} -> {:ok, :convenio, :barcode}
@@ -80,4 +86,16 @@ defmodule Brasilex.Boleto.Validator do
   end
 
   def detect_type(_), do: {:error, :unknown_type}
+
+  defp validate_digits(:banking, :linha_digitavel, digits),
+    do: Banking.Validator.validate(digits)
+
+  defp validate_digits(:banking, :barcode, digits),
+    do: Banking.Validator.validate_barcode(digits)
+
+  defp validate_digits(:convenio, :linha_digitavel, digits),
+    do: Convenio.Validator.validate(digits)
+
+  defp validate_digits(:convenio, :barcode, digits),
+    do: Convenio.Validator.validate_barcode(digits)
 end

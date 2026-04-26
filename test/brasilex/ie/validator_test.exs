@@ -1,6 +1,7 @@
 defmodule Brasilex.IE.ValidatorTest do
   use ExUnit.Case, async: true
 
+  alias Brasilex.IE.States.{AL, AM, CE, GO, MA, MS, MT, PA, PB, RJ, RR, RS, SC, SE}
   alias Brasilex.IE.Validator
 
   describe "sanitize/1" do
@@ -59,7 +60,7 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "SC state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.SC.validate("12345")
+      assert {:error, :invalid_length} = SC.validate("12345")
     end
   end
 
@@ -70,7 +71,7 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "SE state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.SE.validate("12345")
+      assert {:error, :invalid_length} = SE.validate("12345")
     end
   end
 
@@ -89,8 +90,8 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "MS state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.MS.validate("12345")
-      assert {:error, :invalid_prefix} = Brasilex.IE.States.MS.validate("270000006")
+      assert {:error, :invalid_length} = MS.validate("12345")
+      assert {:error, :invalid_prefix} = MS.validate("270000006")
     end
   end
 
@@ -101,11 +102,11 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "GO state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.GO.validate("12345")
+      assert {:error, :invalid_length} = GO.validate("12345")
     end
 
     test "GO state module returns error for wrong prefix" do
-      assert {:error, :invalid_prefix} = Brasilex.IE.States.GO.validate("300000000")
+      assert {:error, :invalid_prefix} = GO.validate("300000000")
     end
   end
 
@@ -116,7 +117,7 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "RS state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.RS.validate("12345")
+      assert {:error, :invalid_length} = RS.validate("12345")
     end
   end
 
@@ -135,8 +136,8 @@ defmodule Brasilex.IE.ValidatorTest do
 
     test "RR state module returns error for wrong length" do
       # Direct call to RR module for coverage
-      assert {:error, :invalid_length} = Brasilex.IE.States.RR.validate("12345")
-      assert {:error, :invalid_prefix} = Brasilex.IE.States.RR.validate("250061536")
+      assert {:error, :invalid_length} = RR.validate("12345")
+      assert {:error, :invalid_prefix} = RR.validate("250061536")
     end
   end
 
@@ -181,7 +182,7 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "MT state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.MT.validate("12345")
+      assert {:error, :invalid_length} = MT.validate("12345")
     end
   end
 
@@ -207,11 +208,11 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "AL state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.AL.validate("12345")
+      assert {:error, :invalid_length} = AL.validate("12345")
     end
 
     test "AL state module returns error for wrong prefix" do
-      assert {:error, :invalid_prefix} = Brasilex.IE.States.AL.validate("250000048")
+      assert {:error, :invalid_prefix} = AL.validate("250000048")
     end
   end
 
@@ -234,7 +235,7 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "AM state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.AM.validate("12345")
+      assert {:error, :invalid_length} = AM.validate("12345")
     end
   end
 
@@ -267,7 +268,7 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "CE state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.CE.validate("12345")
+      assert {:error, :invalid_length} = CE.validate("12345")
     end
   end
 
@@ -330,11 +331,11 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "MA state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.MA.validate("12345")
+      assert {:error, :invalid_length} = MA.validate("12345")
     end
 
     test "MA state module returns error for wrong prefix" do
-      assert {:error, :invalid_prefix} = Brasilex.IE.States.MA.validate("130000385")
+      assert {:error, :invalid_prefix} = MA.validate("130000385")
     end
   end
 
@@ -357,11 +358,11 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "PA state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.PA.validate("12345")
+      assert {:error, :invalid_length} = PA.validate("12345")
     end
 
     test "PA state module returns error for wrong prefix" do
-      assert {:error, :invalid_prefix} = Brasilex.IE.States.PA.validate("160000023")
+      assert {:error, :invalid_prefix} = PA.validate("160000023")
     end
   end
 
@@ -374,7 +375,7 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "PB state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.PB.validate("12345")
+      assert {:error, :invalid_length} = PB.validate("12345")
     end
   end
 
@@ -387,7 +388,7 @@ defmodule Brasilex.IE.ValidatorTest do
     end
 
     test "RJ state module returns error for wrong length" do
-      assert {:error, :invalid_length} = Brasilex.IE.States.RJ.validate("12345")
+      assert {:error, :invalid_length} = RJ.validate("12345")
     end
   end
 

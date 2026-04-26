@@ -18,6 +18,8 @@ defmodule Brasilex.IE.States.RO do
   #
   # If result is 10 or 11, subtract 10 to get the digit
 
+  alias Brasilex.IE.Checksum
+
   @weights_14 [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
   @weights_9 [6, 5, 4, 3, 2]
 
@@ -25,50 +27,19 @@ defmodule Brasilex.IE.States.RO do
   Validates a Rondônia IE number (14 or 9 digits).
   """
   @spec validate(String.t()) :: :ok | {:error, atom()}
-  def validate(digits) when byte_size(digits) == 14 do
-    if valid_checksum_14?(digits) do
-      :ok
-    else
-      {:error, :invalid_checksum}
-    end
+  def validate(<<payload::binary-size(13), dv::binary-size(1)>>) do
+    if String.to_integer(dv) == Checksum.mod11_dv(payload, @weights_14, :subtract_10_when_gt_9),
+      do: :ok,
+      else: {:error, :invalid_checksum}
   end
 
-  def validate(digits) when byte_size(digits) == 9 do
-    if valid_checksum_9?(digits) do
-      :ok
-    else
-      {:error, :invalid_checksum}
-    end
+  def validate(<<_municipality::binary-size(3), enterprise::binary-size(5), dv::binary-size(1)>>) do
+    if String.to_integer(dv) == Checksum.mod11_dv(enterprise, @weights_9, :subtract_10_when_gt_9),
+      do: :ok,
+      else: {:error, :invalid_checksum}
   end
 
   def validate(_), do: {:error, :invalid_length}
-
-  defp valid_checksum_14?(<<payload::binary-size(13), dv::binary-size(1)>>) do
-    calculated = calculate_dv(payload, @weights_14)
-    String.to_integer(dv) == calculated
-  end
-
-  defp valid_checksum_9?(
-         <<_municipality::binary-size(3), enterprise::binary-size(5), dv::binary-size(1)>>
-       ) do
-    calculated = calculate_dv(enterprise, @weights_9)
-    String.to_integer(dv) == calculated
-  end
-
-  defp calculate_dv(payload, weights) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(weights)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    remainder = rem(sum, 11)
-    result = 11 - remainder
-
-    if result in [10, 11], do: result - 10, else: result
-  end
 
   @doc """
   Formats an IE number in RO format.
@@ -83,6 +54,4 @@ defmodule Brasilex.IE.States.RO do
   def format(<<mun::binary-size(3), ent::binary-size(5), dv::binary-size(1)>>) do
     "#{mun}.#{ent}-#{dv}"
   end
-
-  def format(digits), do: digits
 end

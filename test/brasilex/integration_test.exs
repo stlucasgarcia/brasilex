@@ -5,7 +5,7 @@ defmodule Brasilex.IntegrationTest do
   """
   use ExUnit.Case, async: true
 
-  alias Brasilex.Checksum.{Mod10, Mod11}
+  alias Brasilex.Boleto.Checksum.{Mod10, Mod11}
 
   describe "banking boleto (47 digits) round-trip" do
     test "generates, validates, and parses a valid banking boleto" do

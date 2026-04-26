@@ -11,6 +11,8 @@ defmodule Brasilex.IE.States.PA do
   #
   # Examples: 15999999-5, 75000002-3
 
+  alias Brasilex.IE.Checksum
+
   @weights [9, 8, 7, 6, 5, 4, 3, 2]
   @valid_prefixes ["15", "75", "76", "77", "78", "79"]
 
@@ -20,7 +22,11 @@ defmodule Brasilex.IE.States.PA do
   @spec validate(String.t()) :: :ok | {:error, atom()}
   def validate(<<prefix::binary-size(2), _rest::binary>> = digits) when byte_size(digits) == 9 do
     if prefix in @valid_prefixes do
-      if valid_checksum?(digits), do: :ok, else: {:error, :invalid_checksum}
+      <<payload::binary-size(8), dv::binary-size(1)>> = digits
+
+      if String.to_integer(dv) == Checksum.mod11_dv(payload, @weights),
+        do: :ok,
+        else: {:error, :invalid_checksum}
     else
       {:error, :invalid_prefix}
     end
@@ -29,25 +35,6 @@ defmodule Brasilex.IE.States.PA do
   def validate(digits) when byte_size(digits) == 9, do: {:error, :invalid_prefix}
   def validate(_), do: {:error, :invalid_length}
 
-  defp valid_checksum?(<<payload::binary-size(8), dv::binary-size(1)>>) do
-    calculated = calculate_dv(payload)
-    String.to_integer(dv) == calculated
-  end
-
-  defp calculate_dv(payload) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(@weights)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    remainder = rem(sum, 11)
-
-    if remainder in [0, 1], do: 0, else: 11 - remainder
-  end
-
   @doc """
   Formats an IE number in PA format: NNNNNNNN-N
   """
@@ -55,6 +42,4 @@ defmodule Brasilex.IE.States.PA do
   def format(<<payload::binary-size(8), dv::binary-size(1)>>) do
     "#{payload}-#{dv}"
   end
-
-  def format(digits), do: digits
 end

@@ -15,6 +15,8 @@ defmodule Brasilex.IE.States.PE do
   #    - If result > 9, subtract 10
   #    - Example: 18.1.001.0000004-9
 
+  alias Brasilex.IE.Checksum
+
   @weights_d1 [8, 7, 6, 5, 4, 3, 2]
   @weights_d2 [9, 8, 7, 6, 5, 4, 3, 2]
   @weights_legacy [5, 4, 3, 2, 1, 9, 8, 7, 6, 5, 4, 3, 2]
@@ -23,63 +25,27 @@ defmodule Brasilex.IE.States.PE do
   Validates a Pernambuco IE number (9 or 14 digits).
   """
   @spec validate(String.t()) :: :ok | {:error, atom()}
-  def validate(digits) when byte_size(digits) == 9 do
-    if valid_checksum_efisco?(digits), do: :ok, else: {:error, :invalid_checksum}
-  end
+  def validate(<<payload::binary-size(7), d1::binary-size(1), d2::binary-size(1)>>) do
+    cond do
+      String.to_integer(d1) != Checksum.mod11_dv(payload, @weights_d1) ->
+        {:error, :invalid_checksum}
 
-  def validate(digits) when byte_size(digits) == 14 do
-    if valid_checksum_legacy?(digits), do: :ok, else: {:error, :invalid_checksum}
-  end
+      String.to_integer(d2) != Checksum.mod11_dv(payload <> d1, @weights_d2) ->
+        {:error, :invalid_checksum}
 
-  def validate(_), do: {:error, :invalid_length}
-
-  # eFisco format: 7 base + 2 check digits
-  defp valid_checksum_efisco?(<<payload::binary-size(7), d1::binary-size(1), d2::binary-size(1)>>) do
-    calculated_d1 = calculate_digit(payload, @weights_d1)
-
-    if String.to_integer(d1) != calculated_d1 do
-      false
-    else
-      payload_d2 = payload <> d1
-      calculated_d2 = calculate_digit(payload_d2, @weights_d2)
-      String.to_integer(d2) == calculated_d2
+      true ->
+        :ok
     end
   end
 
-  defp calculate_digit(payload, weights) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(weights)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    remainder = rem(sum, 11)
-
-    if remainder in [0, 1], do: 0, else: 11 - remainder
+  def validate(<<payload::binary-size(13), dv::binary-size(1)>>) do
+    if String.to_integer(dv) ==
+         Checksum.mod11_dv(payload, @weights_legacy, :subtract_10_when_gt_9),
+       do: :ok,
+       else: {:error, :invalid_checksum}
   end
 
-  # Legacy CACEPE format: 13 base + 1 check digit
-  defp valid_checksum_legacy?(<<payload::binary-size(13), dv::binary-size(1)>>) do
-    calculated = calculate_dv_legacy(payload)
-    String.to_integer(dv) == calculated
-  end
-
-  defp calculate_dv_legacy(payload) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(@weights_legacy)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    remainder = rem(sum, 11)
-    result = 11 - remainder
-
-    if result > 9, do: result - 10, else: result
-  end
+  def validate(_), do: {:error, :invalid_length}
 
   @doc """
   Formats an IE number in PE format.
@@ -97,6 +63,4 @@ defmodule Brasilex.IE.States.PE do
       ) do
     "#{a}.#{b}.#{c}.#{d}-#{e}"
   end
-
-  def format(digits), do: digits
 end

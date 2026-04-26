@@ -10,6 +10,8 @@ defmodule Brasilex.IE.States.AC do
   #
   # Example: 01.004.823/001-12
 
+  alias Brasilex.IE.Checksum
+
   @weights_d1 [4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
   @weights_d2 [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
 
@@ -17,39 +19,23 @@ defmodule Brasilex.IE.States.AC do
   Validates an Acre IE number (13 digits, prefix "01").
   """
   @spec validate(String.t()) :: :ok | {:error, atom()}
-  def validate(<<"01", _rest::binary>> = digits) when byte_size(digits) == 13 do
-    with :ok <- validate_d1(digits) do
-      validate_d2(digits)
+  def validate(<<"01", _::binary-size(11)>> = digits) do
+    <<payload::binary-size(11), d1::binary-size(1), d2::binary-size(1)>> = digits
+
+    cond do
+      String.to_integer(d1) != Checksum.mod11_dv(payload, @weights_d1) ->
+        {:error, :invalid_checksum}
+
+      String.to_integer(d2) != Checksum.mod11_dv(payload <> d1, @weights_d2) ->
+        {:error, :invalid_checksum}
+
+      true ->
+        :ok
     end
   end
 
   def validate(digits) when byte_size(digits) == 13, do: {:error, :invalid_prefix}
   def validate(_), do: {:error, :invalid_length}
-
-  defp validate_d1(<<payload::binary-size(11), d1::binary-size(1), _d2::binary-size(1)>>) do
-    calculated = calculate_dv(payload, @weights_d1)
-    if String.to_integer(d1) == calculated, do: :ok, else: {:error, :invalid_checksum}
-  end
-
-  defp validate_d2(<<payload::binary-size(12), d2::binary-size(1)>>) do
-    calculated = calculate_dv(payload, @weights_d2)
-    if String.to_integer(d2) == calculated, do: :ok, else: {:error, :invalid_checksum}
-  end
-
-  defp calculate_dv(payload, weights) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(weights)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    remainder = rem(sum, 11)
-    result = 11 - remainder
-
-    if result in [10, 11], do: 0, else: result
-  end
 
   @doc """
   Formats an IE number in AC format: NN.NNN.NNN/NNN-NN
@@ -61,6 +47,4 @@ defmodule Brasilex.IE.States.AC do
       ) do
     "#{a}.#{b}.#{c}/#{d}-#{e}"
   end
-
-  def format(digits), do: digits
 end

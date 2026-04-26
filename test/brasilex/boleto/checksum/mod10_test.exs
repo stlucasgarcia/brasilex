@@ -1,8 +1,8 @@
-defmodule Brasilex.Checksum.Mod10Test do
+defmodule Brasilex.Boleto.Checksum.Mod10Test do
   use ExUnit.Case, async: true
-  doctest Brasilex.Checksum.Mod10
+  doctest Brasilex.Boleto.Checksum.Mod10
 
-  alias Brasilex.Checksum.Mod10
+  alias Brasilex.Boleto.Checksum.Mod10
 
   describe "calculate/1" do
     test "calculates correct check digit for FEBRABAN examples" do

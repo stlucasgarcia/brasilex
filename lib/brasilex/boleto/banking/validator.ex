@@ -15,7 +15,7 @@ defmodule Brasilex.Boleto.Banking.Validator do
   # - Positions 5-18: due factor (4) + amount (10)
   # - Positions 19-43: free field (25)
 
-  alias Brasilex.Checksum.{Mod10, Mod11}
+  alias Brasilex.Boleto.Checksum.{Mod10, Mod11}
 
   @doc """
   Validates a 47-digit boleto bancário linha digitável.

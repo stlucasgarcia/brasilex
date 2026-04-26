@@ -13,7 +13,7 @@ defmodule Brasilex.IE.States.RR do
   #   (2*1) + (4*2) + (0*3) + (0*4) + (6*5) + (1*6) + (5*7) + (3*8) = 105
   #   105 mod 9 = 6 (check digit)
 
-  alias Brasilex.Checksum.Mod9
+  alias Brasilex.IE.Checksum.Mod9
 
   @doc """
   Validates a Roraima IE number (9 digits, prefix "24").
@@ -37,6 +37,4 @@ defmodule Brasilex.IE.States.RR do
   def format(<<payload::binary-size(8), dv::binary-size(1)>>) do
     "#{payload}-#{dv}"
   end
-
-  def format(digits), do: digits
 end

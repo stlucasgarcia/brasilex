@@ -32,87 +32,49 @@ defmodule Brasilex.IE.States.MG do
   #     Weights: 3,2,11,10,9,8,7,6,5,4,3,2
   #     Sum = 219, 219 mod 11 = 10, 11 - 10 = 1 -> D2 = 1
 
+  alias Brasilex.IE.Checksum
+
   @weights_d2 [3, 2, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]
 
   @doc """
   Validates a Minas Gerais IE number (13 digits).
   """
   @spec validate(String.t()) :: :ok | {:error, atom()}
-  def validate(digits) when byte_size(digits) == 13 do
-    with :ok <- validate_d1(digits) do
-      validate_d2(digits)
+  def validate(
+        <<mun::binary-size(3), seq::binary-size(8), d1::binary-size(1), d2::binary-size(1)>>
+      ) do
+    cond do
+      String.to_integer(d1) != calculate_d1(mun, seq) ->
+        {:error, :invalid_checksum}
+
+      String.to_integer(d2) !=
+          Checksum.mod11_dv(mun <> seq <> d1, @weights_d2) ->
+        {:error, :invalid_checksum}
+
+      true ->
+        :ok
     end
   end
 
   def validate(_), do: {:error, :invalid_length}
 
-  # Validate first check digit (position 12)
-  defp validate_d1(<<
-         p1::binary-size(3),
-         p2::binary-size(8),
-         d1::binary-size(1),
-         _d2::binary-size(1)
-       >>) do
-    # Insert "0" after municipality code
-    payload = p1 <> "0" <> p2
+  # MG's D1: alternating 1,2 weights with digit-sum reduction, then
+  # round-up-to-10 minus sum.
+  defp calculate_d1(municipality, sequential) do
+    # Insert "0" between municipality and sequential digits.
+    payload = municipality <> "0" <> sequential
 
-    calculated = calculate_d1(payload)
-
-    if String.to_integer(d1) == calculated do
-      :ok
-    else
-      {:error, :invalid_checksum}
-    end
-  end
-
-  # Validate second check digit (position 13)
-  defp validate_d2(<<payload::binary-size(12), d2::binary-size(1)>>) do
-    calculated = calculate_d2(payload)
-
-    if String.to_integer(d2) == calculated do
-      :ok
-    else
-      {:error, :invalid_checksum}
-    end
-  end
-
-  defp calculate_d1(payload) do
     sum =
       payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
+      |> :binary.bin_to_list()
       |> Enum.with_index()
-      |> Enum.map(fn {digit, index} ->
+      |> Enum.map(fn {char, index} ->
         weight = if rem(index, 2) == 0, do: 1, else: 2
-        product = digit * weight
-        sum_digits(product)
+        Checksum.digit_sum((char - ?0) * weight)
       end)
       |> Enum.sum()
 
-    # Round up to nearest 10, then subtract
-    next_ten = ceil(sum / 10) * 10
-    rem(next_ten - sum, 10)
-  end
-
-  defp sum_digits(n) when n < 10, do: n
-  defp sum_digits(n), do: div(n, 10) + rem(n, 10)
-
-  defp calculate_d2(payload) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(@weights_d2)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    remainder = rem(sum, 11)
-
-    if remainder < 2 do
-      0
-    else
-      11 - remainder
-    end
+    rem(ceil(sum / 10) * 10 - sum, 10)
   end
 
   @doc """
@@ -122,6 +84,4 @@ defmodule Brasilex.IE.States.MG do
   def format(<<a::binary-size(3), b::binary-size(3), c::binary-size(3), d::binary-size(4)>>) do
     "#{a}.#{b}.#{c}/#{d}"
   end
-
-  def format(digits), do: digits
 end

@@ -29,6 +29,8 @@ defmodule Brasilex.IE.States.SP do
   # D2: (1*3)+(1*2)+(0*10)+(0*9)+(4*8)+(2*7)+(4*6)+(9*5)+(0*4)+(1*3)+(1*2) = 125
   #     125 mod 11 = 4 -> D2 = 4
 
+  alias Brasilex.IE.Checksum
+
   @weights_d1 [1, 3, 4, 5, 6, 7, 8, 10]
   @weights_d2 [3, 2, 10, 9, 8, 7, 6, 5, 4, 3, 2]
 
@@ -37,83 +39,33 @@ defmodule Brasilex.IE.States.SP do
   Accepts 12 digits (regular) or P + 12 digits (rural producer).
   """
   @spec validate(String.t()) :: :ok | {:error, atom()}
-  def validate(<<"P", digits::binary-size(12)>>) do
-    validate_rural(digits)
+  def validate(<<"P", payload::binary-size(8), d::binary-size(1), _::binary-size(3)>>) do
+    if String.to_integer(d) == sp_dv(payload, @weights_d1),
+      do: :ok,
+      else: {:error, :invalid_checksum}
   end
 
-  def validate(digits) when byte_size(digits) == 12 do
-    validate_regular(digits)
+  def validate(
+        <<payload::binary-size(8), d1::binary-size(1), middle::binary-size(2),
+          d2::binary-size(1)>>
+      ) do
+    cond do
+      String.to_integer(d1) != sp_dv(payload, @weights_d1) ->
+        {:error, :invalid_checksum}
+
+      String.to_integer(d2) != sp_dv(payload <> d1 <> middle, @weights_d2) ->
+        {:error, :invalid_checksum}
+
+      true ->
+        :ok
+    end
   end
 
   def validate(_), do: {:error, :invalid_length}
 
-  # Regular IE validation (12 digits)
-  defp validate_regular(digits) do
-    with :ok <- validate_d1_regular(digits) do
-      validate_d2_regular(digits)
-    end
-  end
-
-  # Rural producer IE validation (12 digits after P)
-  defp validate_rural(digits) do
-    validate_d1_rural(digits)
-  end
-
-  # D1 at position 9 for regular format
-  defp validate_d1_regular(<<payload::binary-size(8), d1::binary-size(1), _rest::binary>>) do
-    calculated = calculate_d1(payload)
-
-    if String.to_integer(d1) == calculated do
-      :ok
-    else
-      {:error, :invalid_checksum}
-    end
-  end
-
-  # D2 at position 12 for regular format
-  defp validate_d2_regular(<<payload::binary-size(11), d2::binary-size(1)>>) do
-    calculated = calculate_d2(payload)
-
-    if String.to_integer(d2) == calculated do
-      :ok
-    else
-      {:error, :invalid_checksum}
-    end
-  end
-
-  # D at position 9 for rural format (after P, so position 10 in full string)
-  defp validate_d1_rural(<<payload::binary-size(8), d::binary-size(1), _rest::binary>>) do
-    calculated = calculate_d1(payload)
-
-    if String.to_integer(d) == calculated do
-      :ok
-    else
-      {:error, :invalid_checksum}
-    end
-  end
-
-  defp calculate_d1(payload) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(@weights_d1)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    rem(rem(sum, 11), 10)
-  end
-
-  defp calculate_d2(payload) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(@weights_d2)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    rem(rem(sum, 11), 10)
+  # SP's "rightmost digit of (sum mod 11)" — unique to SP.
+  defp sp_dv(payload, weights) do
+    rem(rem(Checksum.weighted_sum(payload, weights), 11), 10)
   end
 
   @doc """
@@ -129,6 +81,4 @@ defmodule Brasilex.IE.States.SP do
   def format(<<a::binary-size(3), b::binary-size(3), c::binary-size(3), d::binary-size(3)>>) do
     "#{a}.#{b}.#{c}.#{d}"
   end
-
-  def format(digits), do: digits
 end

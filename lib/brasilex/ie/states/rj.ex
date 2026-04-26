@@ -11,36 +11,21 @@ defmodule Brasilex.IE.States.RJ do
   #
   # Example: 99.999.99-3
 
+  alias Brasilex.IE.Checksum
+
   @weights [2, 7, 6, 5, 4, 3, 2]
 
   @doc """
   Validates a Rio de Janeiro IE number (8 digits).
   """
   @spec validate(String.t()) :: :ok | {:error, atom()}
-  def validate(digits) when byte_size(digits) == 8 do
-    if valid_checksum?(digits), do: :ok, else: {:error, :invalid_checksum}
+  def validate(<<payload::binary-size(7), dv::binary-size(1)>>) do
+    if String.to_integer(dv) == Checksum.mod11_dv(payload, @weights),
+      do: :ok,
+      else: {:error, :invalid_checksum}
   end
 
   def validate(_), do: {:error, :invalid_length}
-
-  defp valid_checksum?(<<payload::binary-size(7), dv::binary-size(1)>>) do
-    calculated = calculate_dv(payload)
-    String.to_integer(dv) == calculated
-  end
-
-  defp calculate_dv(payload) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(@weights)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    remainder = rem(sum, 11)
-
-    if remainder <= 1, do: 0, else: 11 - remainder
-  end
 
   @doc """
   Formats an IE number in RJ format: NN.NNN.NN-N
@@ -49,6 +34,4 @@ defmodule Brasilex.IE.States.RJ do
   def format(<<a::binary-size(2), b::binary-size(3), c::binary-size(2), d::binary-size(1)>>) do
     "#{a}.#{b}.#{c}-#{d}"
   end
-
-  def format(digits), do: digits
 end

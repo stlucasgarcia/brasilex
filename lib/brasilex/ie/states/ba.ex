@@ -19,105 +19,64 @@ defmodule Brasilex.IE.States.BA do
   # Examples: 123456-63 (8 digits, mod10), 612345-57 (8 digits, mod11)
   #           1000003-06 (9 digits, mod10)
 
+  alias Brasilex.IE.Checksum
+
   @doc """
   Validates a Bahia IE number (8 or 9 digits).
   """
   @spec validate(String.t()) :: :ok | {:error, atom()}
-  def validate(digits) when byte_size(digits) == 8 do
-    validate_8_digits(digits)
+  def validate(<<first::binary-size(1), _::binary-size(7)>> = digits) do
+    validate_with(digits, get_modulo(first), 8)
   end
 
-  def validate(digits) when byte_size(digits) == 9 do
-    validate_9_digits(digits)
+  def validate(<<_::binary-size(1), second::binary-size(1), _::binary-size(7)>> = digits) do
+    validate_with(digits, get_modulo(second), 9)
   end
 
   def validate(_), do: {:error, :invalid_length}
 
-  # 8-digit validation
-  defp validate_8_digits(<<first::binary-size(1), _rest::binary>> = digits) do
-    modulo = get_modulo(first)
-    validate_with_modulo(digits, modulo, 8)
-  end
-
-  # 9-digit validation
-  defp validate_9_digits(
-         <<_first::binary-size(1), second::binary-size(1), _rest::binary>> = digits
-       ) do
-    modulo = get_modulo(second)
-    validate_with_modulo(digits, modulo, 9)
-  end
-
   defp get_modulo(digit) when digit in ~w(0 1 2 3 4 5 8), do: 10
   defp get_modulo(digit) when digit in ~w(6 7 9), do: 11
 
-  defp validate_with_modulo(digits, modulo, length) do
-    {payload_d2, d1_str, d2_str} = split_digits(digits, length)
+  defp validate_with(digits, modulo, length) do
+    payload_size = length - 2
 
-    # Calculate D2 first
-    calculated_d2 = calculate_d2(payload_d2, modulo, length)
+    <<payload_d2::binary-size(payload_size), d1_str::binary-size(1), d2_str::binary-size(1)>> =
+      digits
 
-    if String.to_integer(d2_str) != calculated_d2 do
-      {:error, :invalid_checksum}
-    else
-      # Calculate D1 with D2 included
-      payload_d1 = payload_d2 <> d2_str
-      calculated_d1 = calculate_d1(payload_d1, modulo, length)
-
-      if String.to_integer(d1_str) == calculated_d1, do: :ok, else: {:error, :invalid_checksum}
-    end
-  end
-
-  defp split_digits(digits, 8) do
-    <<payload::binary-size(6), d1::binary-size(1), d2::binary-size(1)>> = digits
-    {payload, d1, d2}
-  end
-
-  defp split_digits(digits, 9) do
-    <<payload::binary-size(7), d1::binary-size(1), d2::binary-size(1)>> = digits
-    {payload, d1, d2}
-  end
-
-  # D2 calculation (6 or 7 digits)
-  defp calculate_d2(payload, modulo, length) do
-    weights = if length == 8, do: [7, 6, 5, 4, 3, 2], else: [8, 7, 6, 5, 4, 3, 2]
-    calculate_digit(payload, weights, modulo)
-  end
-
-  # D1 calculation (7 or 8 digits, includes D2)
-  defp calculate_d1(payload, modulo, length) do
-    weights = if length == 8, do: [8, 7, 6, 5, 4, 3, 2], else: [9, 8, 7, 6, 5, 4, 3, 2]
-    calculate_digit(payload, weights, modulo)
-  end
-
-  defp calculate_digit(payload, weights, modulo) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(weights)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    remainder = rem(sum, modulo)
+    {weights_d2, weights_d1} = weights_for(length)
+    calculated_d2 = calc_dv(payload_d2, weights_d2, modulo)
 
     cond do
-      remainder == 0 -> 0
-      modulo == 11 and remainder == 1 -> 0
-      true -> modulo - remainder
+      String.to_integer(d2_str) != calculated_d2 ->
+        {:error, :invalid_checksum}
+
+      String.to_integer(d1_str) != calc_dv(payload_d2 <> d2_str, weights_d1, modulo) ->
+        {:error, :invalid_checksum}
+
+      true ->
+        :ok
     end
   end
+
+  defp weights_for(8), do: {[7, 6, 5, 4, 3, 2], [8, 7, 6, 5, 4, 3, 2]}
+  defp weights_for(9), do: {[8, 7, 6, 5, 4, 3, 2], [9, 8, 7, 6, 5, 4, 3, 2]}
+
+  # Mod10 here is "if remainder == 0, 0; else 10 - remainder" — different from
+  # FEBRABAN Mod10 (which doubles digits and reduces). Inline by design.
+  defp calc_dv(payload, weights, 10) do
+    case rem(Checksum.weighted_sum(payload, weights), 10) do
+      0 -> 0
+      r -> 10 - r
+    end
+  end
+
+  defp calc_dv(payload, weights, 11), do: Checksum.mod11_dv(payload, weights)
 
   @doc """
   Formats an IE number in BA format: NNNNNN-NN or NNNNNNN-NN
   """
   @spec format(String.t()) :: String.t()
-  def format(<<payload::binary-size(6), dv::binary-size(2)>>) do
-    "#{payload}-#{dv}"
-  end
-
-  def format(<<payload::binary-size(7), dv::binary-size(2)>>) do
-    "#{payload}-#{dv}"
-  end
-
-  def format(digits), do: digits
+  def format(<<payload::binary-size(6), dv::binary-size(2)>>), do: "#{payload}-#{dv}"
+  def format(<<payload::binary-size(7), dv::binary-size(2)>>), do: "#{payload}-#{dv}"
 end

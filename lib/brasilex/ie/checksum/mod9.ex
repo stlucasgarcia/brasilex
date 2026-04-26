@@ -1,4 +1,4 @@
-defmodule Brasilex.Checksum.Mod9 do
+defmodule Brasilex.IE.Checksum.Mod9 do
   @moduledoc """
   Implements the Modulo 9 check digit algorithm used by Roraima (RR).
 
@@ -23,10 +23,10 @@ defmodule Brasilex.Checksum.Mod9 do
 
   ## Examples
 
-      iex> Brasilex.Checksum.Mod9.calculate("24006153")
+      iex> Brasilex.IE.Checksum.Mod9.calculate("24006153")
       6
 
-      iex> Brasilex.Checksum.Mod9.calculate("24001755")
+      iex> Brasilex.IE.Checksum.Mod9.calculate("24001755")
       6
 
   """
@@ -46,10 +46,10 @@ defmodule Brasilex.Checksum.Mod9 do
 
   ## Examples
 
-      iex> Brasilex.Checksum.Mod9.valid?("240061536")
+      iex> Brasilex.IE.Checksum.Mod9.valid?("240061536")
       true
 
-      iex> Brasilex.Checksum.Mod9.valid?("240061537")
+      iex> Brasilex.IE.Checksum.Mod9.valid?("240061537")
       false
 
   """

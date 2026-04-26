@@ -11,37 +11,29 @@ defmodule Brasilex.IE.States.AM do
   #
   # Example: 04.123.456-7
 
+  alias Brasilex.IE.Checksum
+
   @weights [9, 8, 7, 6, 5, 4, 3, 2]
 
   @doc """
   Validates an Amazonas IE number (9 digits).
   """
   @spec validate(String.t()) :: :ok | {:error, atom()}
-  def validate(digits) when byte_size(digits) == 9 do
-    if valid_checksum?(digits), do: :ok, else: {:error, :invalid_checksum}
+  def validate(<<payload::binary-size(8), dv::binary-size(1)>>) do
+    if String.to_integer(dv) == calculate_dv(payload),
+      do: :ok,
+      else: {:error, :invalid_checksum}
   end
 
   def validate(_), do: {:error, :invalid_length}
 
-  defp valid_checksum?(<<payload::binary-size(8), dv::binary-size(1)>>) do
-    calculated = calculate_dv(payload)
-    String.to_integer(dv) == calculated
-  end
-
   defp calculate_dv(payload) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(@weights)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
+    sum = Checksum.weighted_sum(payload, @weights)
 
-    if sum < 11 do
-      11 - sum
-    else
-      remainder = rem(sum, 11)
-      if remainder <= 1, do: 0, else: 11 - remainder
+    cond do
+      sum < 11 -> 11 - sum
+      rem(sum, 11) in [0, 1] -> 0
+      true -> 11 - rem(sum, 11)
     end
   end
 
@@ -52,6 +44,4 @@ defmodule Brasilex.IE.States.AM do
   def format(<<a::binary-size(2), b::binary-size(3), c::binary-size(3), d::binary-size(1)>>) do
     "#{a}.#{b}.#{c}-#{d}"
   end
-
-  def format(digits), do: digits
 end

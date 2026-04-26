@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-04-26
+
+### Changed
+
+- **Breaking:** Moved checksum modules into per-domain namespaces:
+  - `Brasilex.Checksum.Mod10` → `Brasilex.Boleto.Checksum.Mod10`
+  - `Brasilex.Checksum.Mod11` → `Brasilex.Boleto.Checksum.Mod11`
+  - `Brasilex.Checksum.Mod9` → `Brasilex.IE.Checksum.Mod9`
+
+  The old top-level `Brasilex.Checksum` namespace implied the modules were
+  generic, but `Mod10` and `Mod11` are FEBRABAN-specific (used only by
+  boletos) and `Mod9` is used only by Roraima IE validation.
+
+### Added
+
+- Internal IE checksum helper centralizing the weighted-sum pipeline
+  shared by all 27 state validators, eliminating ~1000 lines of
+  duplicated checksum code.
+
 ## [0.2.1] - 2026-03-10
 
 ### Changed

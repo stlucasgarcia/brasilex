@@ -1,4 +1,4 @@
-defmodule Brasilex.Checksum.Mod10 do
+defmodule Brasilex.Boleto.Checksum.Mod10 do
   @moduledoc """
   Implements the Modulo 10 check digit algorithm as defined by FEBRABAN.
 
@@ -18,13 +18,13 @@ defmodule Brasilex.Checksum.Mod10 do
 
   ## Examples
 
-      iex> Brasilex.Checksum.Mod10.calculate("341911012")
+      iex> Brasilex.Boleto.Checksum.Mod10.calculate("341911012")
       1
 
-      iex> Brasilex.Checksum.Mod10.calculate("3456788005")
+      iex> Brasilex.Boleto.Checksum.Mod10.calculate("3456788005")
       8
 
-      iex> Brasilex.Checksum.Mod10.calculate("0000000000")
+      iex> Brasilex.Boleto.Checksum.Mod10.calculate("0000000000")
       0
 
   """
@@ -52,13 +52,13 @@ defmodule Brasilex.Checksum.Mod10 do
 
   ## Examples
 
-      iex> Brasilex.Checksum.Mod10.valid?("3419110121")
+      iex> Brasilex.Boleto.Checksum.Mod10.valid?("3419110121")
       true
 
-      iex> Brasilex.Checksum.Mod10.valid?("3419110129")
+      iex> Brasilex.Boleto.Checksum.Mod10.valid?("3419110129")
       false
 
-      iex> Brasilex.Checksum.Mod10.valid?("5")
+      iex> Brasilex.Boleto.Checksum.Mod10.valid?("5")
       false
 
   """
