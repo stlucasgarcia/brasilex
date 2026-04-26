@@ -64,10 +64,10 @@ defmodule Brasilex.IE.Checksum do
   @doc """
   Sums the digits of a non-negative integer (e.g., 12 -> 1 + 2 = 3).
 
-  Used by MG's D1 calculation and FEBRABAN Mod10, where two-digit
-  products are reduced before summing.
+  Used by MG's D1 calculation, where two-digit products are reduced
+  before summing.
   """
   @spec digit_sum(non_neg_integer()) :: non_neg_integer()
   def digit_sum(n) when n < 10, do: n
-  def digit_sum(n), do: div(n, 10) + rem(n, 10)
+  def digit_sum(n), do: rem(n, 10) + digit_sum(div(n, 10))
 end
