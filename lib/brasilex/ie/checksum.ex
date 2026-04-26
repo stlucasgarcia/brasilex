@@ -66,6 +66,27 @@ defmodule Brasilex.IE.Checksum do
 
   Used by MG's D1 calculation, where two-digit products are reduced
   before summing.
+
+  ## Examples
+
+      iex> Brasilex.IE.Checksum.digit_sum(0)
+      0
+
+      iex> Brasilex.IE.Checksum.digit_sum(9)
+      9
+
+      iex> Brasilex.IE.Checksum.digit_sum(12)
+      3
+
+      iex> Brasilex.IE.Checksum.digit_sum(100)
+      1
+
+      iex> Brasilex.IE.Checksum.digit_sum(123)
+      6
+
+      iex> Brasilex.IE.Checksum.digit_sum(9999)
+      36
+
   """
   @spec digit_sum(non_neg_integer()) :: non_neg_integer()
   def digit_sum(n) when n < 10, do: n
