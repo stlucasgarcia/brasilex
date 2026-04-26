@@ -55,7 +55,7 @@ Add `brasilex` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:brasilex, "~> 0.2.0"}
+    {:brasilex, "~> 0.3.0"}
   ]
 end
 ```
