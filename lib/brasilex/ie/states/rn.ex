@@ -19,6 +19,8 @@ defmodule Brasilex.IE.States.RN do
   #   56 * 10 = 560
   #   560 mod 11 = 10 -> digit is 0
 
+  alias Brasilex.IE.Checksum
+
   @weights_9 [9, 8, 7, 6, 5, 4, 3, 2]
   @weights_10 [10, 9, 8, 7, 6, 5, 4, 3, 2]
 
@@ -26,41 +28,18 @@ defmodule Brasilex.IE.States.RN do
   Validates a Rio Grande do Norte IE number (9 or 10 digits, prefix "20").
   """
   @spec validate(String.t()) :: :ok | {:error, atom()}
-  def validate(<<"20", _rest::binary>> = digits) when byte_size(digits) in [9, 10] do
-    if valid_checksum?(digits) do
-      :ok
-    else
-      {:error, :invalid_checksum}
-    end
-  end
-
+  def validate(<<"20", _::binary-size(7)>> = digits), do: check(digits, @weights_9)
+  def validate(<<"20", _::binary-size(8)>> = digits), do: check(digits, @weights_10)
   def validate(digits) when byte_size(digits) in [9, 10], do: {:error, :invalid_prefix}
   def validate(_), do: {:error, :invalid_length}
 
-  defp valid_checksum?(digits) when byte_size(digits) == 9 do
-    <<payload::binary-size(8), dv::binary-size(1)>> = digits
-    calculated = calculate_dv(payload, @weights_9)
-    String.to_integer(dv) == calculated
-  end
+  defp check(digits, weights) do
+    {payload, dv} = String.split_at(digits, -1)
 
-  defp valid_checksum?(digits) when byte_size(digits) == 10 do
-    <<payload::binary-size(9), dv::binary-size(1)>> = digits
-    calculated = calculate_dv(payload, @weights_10)
-    String.to_integer(dv) == calculated
-  end
-
-  defp calculate_dv(payload, weights) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(weights)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    result = rem(sum * 10, 11)
-
-    if result == 10, do: 0, else: result
+    if String.to_integer(dv) ==
+         Checksum.mod11_dv(payload, weights, :rem_times_10_zero_when_10),
+       do: :ok,
+       else: {:error, :invalid_checksum}
   end
 
   @doc """
@@ -77,6 +56,4 @@ defmodule Brasilex.IE.States.RN do
       ) do
     "#{a}.#{b}.#{c}.#{d}-#{e}"
   end
-
-  def format(digits), do: digits
 end

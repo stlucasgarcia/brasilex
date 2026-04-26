@@ -1,4 +1,4 @@
-defmodule Brasilex.Checksum.Mod11 do
+defmodule Brasilex.Boleto.Checksum.Mod11 do
   @moduledoc """
   Implements the Modulo 11 check digit algorithm as defined by FEBRABAN.
 
@@ -22,7 +22,7 @@ defmodule Brasilex.Checksum.Mod11 do
   ## Examples
 
       # All zeros yields sum=0, so 11-(0 mod 11)=11 -> special case returns 1
-      iex> Brasilex.Checksum.Mod11.calculate("0000000000000000000000000000000000000000000")
+      iex> Brasilex.Boleto.Checksum.Mod11.calculate("0000000000000000000000000000000000000000000")
       1
 
   """
@@ -73,15 +73,15 @@ defmodule Brasilex.Checksum.Mod11 do
   ## Examples
 
       iex> zeros = String.duplicate("0", 43)
-      iex> Brasilex.Checksum.Mod11.valid?(zeros, 1)
+      iex> Brasilex.Boleto.Checksum.Mod11.valid?(zeros, 1)
       true
 
       iex> zeros = String.duplicate("0", 43)
-      iex> Brasilex.Checksum.Mod11.valid?(zeros, "1")
+      iex> Brasilex.Boleto.Checksum.Mod11.valid?(zeros, "1")
       true
 
       iex> zeros = String.duplicate("0", 43)
-      iex> Brasilex.Checksum.Mod11.valid?(zeros, 9)
+      iex> Brasilex.Boleto.Checksum.Mod11.valid?(zeros, 9)
       false
 
   """

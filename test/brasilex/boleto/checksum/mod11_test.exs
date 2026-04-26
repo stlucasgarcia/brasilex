@@ -1,10 +1,10 @@
-defmodule Brasilex.Checksum.Mod11Test do
+defmodule Brasilex.Boleto.Checksum.Mod11Test do
   use ExUnit.Case, async: true
 
   # Skip doctests until we have verified test data
-  # doctest Brasilex.Checksum.Mod11
+  # doctest Brasilex.Boleto.Checksum.Mod11
 
-  alias Brasilex.Checksum.Mod11
+  alias Brasilex.Boleto.Checksum.Mod11
 
   describe "calculate/1" do
     test "returns a single digit between 1 and 9" do

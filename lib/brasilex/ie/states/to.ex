@@ -25,6 +25,8 @@ defmodule Brasilex.IE.States.TO do
   #
   # If remainder < 2, digit = 0
 
+  alias Brasilex.IE.Checksum
+
   @weights [9, 8, 7, 6, 5, 4, 3, 2]
   @valid_type_codes ["01", "02", "03", "99"]
 
@@ -32,56 +34,22 @@ defmodule Brasilex.IE.States.TO do
   Validates a Tocantins IE number (11 digits).
   """
   @spec validate(String.t()) :: :ok | {:error, atom()}
-  def validate(digits) when byte_size(digits) == 11 do
-    with :ok <- validate_type_code(digits) do
-      validate_checksum(digits)
+  def validate(
+        <<p1::binary-size(2), type::binary-size(2), p2::binary-size(6), dv::binary-size(1)>>
+      ) do
+    cond do
+      type not in @valid_type_codes ->
+        {:error, :invalid_format}
+
+      String.to_integer(dv) != Checksum.mod11_dv(p1 <> p2, @weights) ->
+        {:error, :invalid_checksum}
+
+      true ->
+        :ok
     end
   end
 
   def validate(_), do: {:error, :invalid_length}
-
-  defp validate_type_code(<<_prefix::binary-size(2), type_code::binary-size(2), _rest::binary>>) do
-    if type_code in @valid_type_codes do
-      :ok
-    else
-      {:error, :invalid_format}
-    end
-  end
-
-  defp validate_checksum(<<
-         p1::binary-size(2),
-         _type_code::binary-size(2),
-         p2::binary-size(6),
-         dv::binary-size(1)
-       >>) do
-    # Combine positions 1-2 and 5-10 for calculation
-    payload = p1 <> p2
-    calculated = calculate_dv(payload)
-
-    if String.to_integer(dv) == calculated do
-      :ok
-    else
-      {:error, :invalid_checksum}
-    end
-  end
-
-  defp calculate_dv(payload) do
-    sum =
-      payload
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-      |> Enum.zip(@weights)
-      |> Enum.map(fn {digit, weight} -> digit * weight end)
-      |> Enum.sum()
-
-    remainder = rem(sum, 11)
-
-    if remainder < 2 do
-      0
-    else
-      11 - remainder
-    end
-  end
 
   @doc """
   Formats an IE number in TO format: NN.TT.NNNNNN-N
@@ -90,6 +58,4 @@ defmodule Brasilex.IE.States.TO do
   def format(<<a::binary-size(2), type::binary-size(2), b::binary-size(6), d::binary-size(1)>>) do
     "#{a}.#{type}.#{b}-#{d}"
   end
-
-  def format(digits), do: digits
 end

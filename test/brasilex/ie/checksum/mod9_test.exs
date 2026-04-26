@@ -1,9 +1,9 @@
-defmodule Brasilex.Checksum.Mod9Test do
+defmodule Brasilex.IE.Checksum.Mod9Test do
   use ExUnit.Case, async: true
 
-  doctest Brasilex.Checksum.Mod9
+  doctest Brasilex.IE.Checksum.Mod9
 
-  alias Brasilex.Checksum.Mod9
+  alias Brasilex.IE.Checksum.Mod9
 
   describe "calculate/1" do
     test "calculates check digit for Roraima IE examples" do

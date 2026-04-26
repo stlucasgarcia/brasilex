@@ -15,7 +15,7 @@ defmodule Brasilex.Boleto.Convenio.Validator do
   # - Position 3: general DV
   # - Positions 4+: value and company/free data
 
-  alias Brasilex.Checksum.{Mod10, Mod11}
+  alias Brasilex.Boleto.Checksum.{Mod10, Mod11}
 
   @doc """
   Validates a 48-digit boleto de convênio linha digitável.
